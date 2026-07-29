@@ -74,17 +74,13 @@ async function load() {
 			const encodedContent = extractString(item["content:encoded"], true);
 			let content = extractString(item.description);
 			if (content != null && content.length > 0) {
-				content = `<p>${escapeHtml(content)}</p>`;
+				content = `<p>${escapeHtml(content.trim())}</p>`;
 			}
 
 			if (encodedContent != null) {
-				const purchaseLinks = extractPurchaseLinksFromHtml(encodedContent);
+				const purchaseLinks = extractPurchaseLinkEntries(encodedContent);
 				if (purchaseLinks != null) {
-					if (content != null && content.length > 0) {
-						content += `\n<p><br></p>\n${purchaseLinks}`;
-					} else {
-						content = purchaseLinks;
-					}
+					content = appendPurchaseLinksToContent(content, purchaseLinks);
 				}
 			}
 
@@ -137,7 +133,7 @@ async function load() {
 	}
 }
 
-function extractPurchaseLinksFromHtml(html) {
+function extractPurchaseLinkEntries(html) {
 	const blocks = [];
 	const ulRegex = /<ul class="wp-block-gearpatrol-product-retailer-links">([\s\S]*?)<\/ul>/gi;
 	let ulMatch = ulRegex.exec(html);
@@ -173,7 +169,6 @@ function extractPurchaseLinksFromHtml(html) {
 		return null;
 	}
 
-	const paragraphs = [];
 	const linksByDestination = new Map();
 	for (const entry of linkEntries) {
 		const destination = normalizePurchaseHref(entry.href);
@@ -185,12 +180,28 @@ function extractPurchaseLinksFromHtml(html) {
 		}
 	}
 
+	const dedupedLinks = [];
 	for (const {href, labels} of linksByDestination.values()) {
 		const label = labels.length === 1 ? labels[0] : labels.join(" · ");
-		paragraphs.push(formatPurchaseLinkParagraph(href, label));
+		dedupedLinks.push({href, label});
 	}
 
-	return paragraphs.join("\n");
+	return dedupedLinks;
+}
+
+function appendPurchaseLinksToContent(content, linkEntries) {
+	const inlineLinks = linkEntries.map(({href, label}) =>
+		`<a href="${href}">${escapeHtml(label)}</a>`
+	).join("<br>");
+
+	if (content != null && content.length > 0) {
+		if (content.endsWith("</p>")) {
+			return `${content.slice(0, -4)}<br><br>${inlineLinks}</p>`;
+		}
+		return `<p>${escapeHtml(content)}<br><br>${inlineLinks}</p>`;
+	}
+
+	return `<p class="purchase-link">${inlineLinks}</p>`;
 }
 
 function buildPurchaseLabel(anchorHtml, isRoundup) {
@@ -262,10 +273,6 @@ function normalizePurchaseHref(href) {
 		}
 	}
 	return href;
-}
-
-function formatPurchaseLinkParagraph(href, label) {
-	return `<p class="purchase-link"><a href="${href}">${escapeHtml(label)}</a></p>`;
 }
 
 function formatCategory(category) {
