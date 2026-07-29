@@ -4,6 +4,14 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.polygon.feed 0.1.7] - 2026-07-29
+
+### Fixed
+
+- Use `post` layout with a Polygon feed identity (dark circular avatar) because `article` layout always calls `lookupIcon(polygon.com)` for the header icon — our hosted icon cannot override that.
+- Approximate article card order: **Polygon** (author row + icon) → **title** → **by Writer** (annotation).
+- Drop `service_name: Gaming` so the header is not prefixed with a category label.
+
 ## [com.polygon.feed 0.1.6] - 2026-07-29
 
 ### Fixed

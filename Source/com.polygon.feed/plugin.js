@@ -16,12 +16,10 @@ function loadIconUrl() {
 	return iconUrl;
 }
 
-function createAuthorIdentity(writerName) {
-	if (writerName == null || writerName.length === 0) {
-		return null;
-	}
-	const identity = Identity.createWithName(writerName);
+function createFeedIdentity() {
+	const identity = Identity.createWithName("Polygon");
 	identity.uri = POLYGON_BASE_URL;
+	identity.avatar = POLYGON_ICON;
 	return identity;
 }
 
@@ -29,7 +27,8 @@ async function verify() {
 	processVerification({
 		displayName: "Polygon",
 		icon: POLYGON_ICON,
-		baseUrl: POLYGON_BASE_URL
+		baseUrl: POLYGON_BASE_URL,
+		accountIdentity: createFeedIdentity()
 	});
 }
 
@@ -94,9 +93,9 @@ async function load() {
 			if (content != null) {
 				resultItem.body = fixInlineTagSpacing(content);
 			}
-			const author = createAuthorIdentity(authorName);
-			if (author != null) {
-				resultItem.author = author;
+			resultItem.author = createFeedIdentity();
+			if (authorName != null && authorName.length > 0) {
+				resultItem.annotations = [Annotation.createWithText(`by ${authorName}`)];
 			}
 
 			const attachments = [];
