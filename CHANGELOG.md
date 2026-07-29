@@ -4,6 +4,13 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.polygon.feed 0.1.3] - 2026-07-29
+
+### Fixed
+
+- Rebuild icon with a light background (`#F5F5F5`) so the badge stays visible on slate feed headers; `#121212` blended into the header and only the wireframe showed at preview size.
+- Use feed-branded author (`Polygon` + hosted icon) and move writer names to an annotation so Tapestry does not replace avatars with scraped author photos.
+
 ## [com.polygon.feed 0.1.2] - 2026-07-29
 
 ### Fixed

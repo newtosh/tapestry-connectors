@@ -1,1 +1,1 @@
-https://raw.githubusercontent.com/newtosh/tapestry-connectors/main/Source/com.polygon.feed/icon.png
+https://raw.githubusercontent.com/newtosh/tapestry-connectors/main/Source/com.polygon.feed/icon.png?v=4

@@ -84,7 +84,6 @@ async function load() {
 					authorName = authorName.trim();
 				}
 			}
-			const identity = createPolygonIdentity(authorName ?? "Polygon");
 
 			const resultItem = Item.createWithUriDate(url, date);
 			if (title != null) {
@@ -93,7 +92,10 @@ async function load() {
 			if (content != null) {
 				resultItem.body = content;
 			}
-			resultItem.author = identity;
+			resultItem.author = createPolygonIdentity("Polygon");
+			if (authorName != null && authorName.length > 0) {
+				resultItem.annotations = [Annotation.createWithText(`by ${authorName}`)];
+			}
 
 			const attachments = [];
 
