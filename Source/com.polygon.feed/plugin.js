@@ -16,11 +16,17 @@ function loadIconUri() {
 	return iconUri;
 }
 
+function createPolygonIdentity(name) {
+	const identity = Identity.create(name, null, POLYGON_ICON, POLYGON_BASE_URL);
+	return identity;
+}
+
 async function verify() {
 	const verification = {
 		displayName: "Polygon",
 		icon: POLYGON_ICON,
-		baseUrl: POLYGON_BASE_URL
+		baseUrl: POLYGON_BASE_URL,
+		accountIdentity: createPolygonIdentity("Polygon")
 	};
 	processVerification(verification);
 }
@@ -36,7 +42,6 @@ async function load() {
 	const jsonObject = await xmlParse(response);
 
 	if (jsonObject.rss != null && jsonObject.rss.channel != null) {
-		const feedUrl = jsonObject.rss.channel?.link?.trim() ?? POLYGON_BASE_URL;
 
 		let items = [];
 		if (jsonObject.rss.channel.item != null) {
@@ -71,7 +76,6 @@ async function load() {
 				content = dedupeDescriptionFromBody(description, content);
 			}
 
-			let identity = null;
 			let authorName = item["dc:creator"] ?? item["author"];
 			if (authorName != null) {
 				if (authorName instanceof Array) {
@@ -79,9 +83,8 @@ async function load() {
 				} else {
 					authorName = authorName.trim();
 				}
-				identity = Identity.createWithName(authorName);
-				identity.uri = feedUrl;
 			}
+			const identity = createPolygonIdentity(authorName ?? "Polygon");
 
 			const resultItem = Item.createWithUriDate(url, date);
 			if (title != null) {
@@ -90,9 +93,7 @@ async function load() {
 			if (content != null) {
 				resultItem.body = content;
 			}
-			if (identity != null) {
-				resultItem.author = identity;
-			}
+			resultItem.author = identity;
 
 			const attachments = [];
 

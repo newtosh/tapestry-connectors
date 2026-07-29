@@ -26,6 +26,7 @@ config_path = connector_dir / "plugin-config.json"
 config = json.loads(config_path.read_text())
 config["icon"] = icon_uri
 config["version"] = int(version["tapestry_version"])
+config["semver"] = version["semver"]
 config_path.write_text(json.dumps(config, indent=2) + "\n")
 
 print(f"Built {connector_dir.name} v{version['semver']} (Tapestry version {config['version']})")

@@ -58,8 +58,8 @@ Each connector has `version.json`:
 
 | Field | Purpose |
 |-------|---------|
-| `semver` | Human-readable release (`0.1.0`) — changelog, package filenames |
-| `tapestry_version` | Integer in `plugin-config.json` — Tapestry uses this to detect updates on reinstall |
+| `semver` | Human-readable release (`0.1.1`) — changelog, package filenames, `semver` in `plugin-config.json` (shown in Loom metadata) |
+| `tapestry_version` | Integer `version` in `plugin-config.json` — Tapestry uses this to detect updates on reinstall (Loom shows this as `version`) |
 
 Bump both when shipping a new release. See [CHANGELOG.md](../CHANGELOG.md).
 
