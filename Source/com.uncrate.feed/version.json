@@ -1,8 +1,7 @@
 {
-  "semver": "0.1.1",
-  "tapestry_version": 2,
+  "semver": "0.1.2",
+  "tapestry_version": 3,
   "icon_url": "https://raw.githubusercontent.com/newtosh/tapestry-connectors/refs/heads/main/Source/com.uncrate.feed/icon.png",
-  "logo_url": "https://uncrate.com/favicon.ico",
-  "logo_crop": true,
-  "logo_scale": 0.88
+  "icon_text": "u",
+  "icon_text_scale": 0.62
 }

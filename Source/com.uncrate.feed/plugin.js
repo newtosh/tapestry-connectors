@@ -120,11 +120,15 @@ async function fetchUncrateArticleContent(url) {
 			return null;
 		}
 
-		const body = buildArticleBodyFromHtml(html);
-		const imageMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i)
-			?? html.match(/<meta[^>]*content="([^"]+)"[^>]*property="og:image"/i);
-		const imageUrl = imageMatch != null ? decodeHtmlEntities(imageMatch[1]) : null;
+		const canonicalUrl = extractCanonicalUrl(html) ?? url;
+		const pageType = extractMetaContent(html, "og:type");
+		const imageUrl = extractMetaImageUrl(html);
 
+		if (isShopProductPage(pageType, canonicalUrl, html)) {
+			return buildShopProductContent(html, canonicalUrl, imageUrl);
+		}
+
+		const body = buildEditorialArticleBody(html);
 		if (body == null && imageUrl == null) {
 			return null;
 		}
@@ -135,16 +139,51 @@ async function fetchUncrateArticleContent(url) {
 	}
 }
 
-function buildArticleBodyFromHtml(html) {
+function isShopProductPage(pageType, canonicalUrl, html) {
+	if (pageType === "product") {
+		return true;
+	}
+	if (canonicalUrl.includes("shop.uncrate.com/products/")) {
+		return true;
+	}
+	return html.includes("shopify-section") && html.includes("product-form");
+}
+
+function buildShopProductContent(html, shopUrl, imageUrl) {
+	const paragraphs = extractHtmlParagraphs(html, /<div class="uc-body-copy">([\s\S]*?)<\/div>/i);
+	const description = extractMetaContent(html, "og:description");
+	let body = null;
+
+	if (paragraphs != null && paragraphs.length > 0) {
+		body = paragraphs.join("\n");
+	} else if (description != null && description.length > 0) {
+		body = `<p>${escapeHtml(description)}</p>`;
+	}
+
+	const priceAmount = extractMetaContent(html, "og:price:amount");
+	const priceCurrency = extractMetaContent(html, "og:price:currency") ?? "USD";
+	const price = formatPrice(priceAmount, priceCurrency);
+	const purchaseLink = formatPurchaseLinkParagraph(shopUrl, "Buy from Uncrate Supply", price);
+
+	if (body == null) {
+		body = purchaseLink;
+	} else {
+		body += `\n${purchaseLink}`;
+	}
+
+	return {body, imageUrl};
+}
+
+function buildEditorialArticleBody(html) {
 	const paragraphs = extractCopyWrapperParagraphs(html);
 	if (paragraphs == null || paragraphs.length === 0) {
 		return null;
 	}
 
 	let body = paragraphs.join("\n");
-	const buyLink = extractBuyLinkParagraph(html);
-	if (buyLink != null) {
-		body += `\n${buyLink}`;
+	const purchaseLink = extractArticlePurchaseLink(html);
+	if (purchaseLink != null) {
+		body += `\n${purchaseLink}`;
 	}
 
 	return body;
@@ -155,37 +194,120 @@ function extractCopyWrapperParagraphs(html) {
 	if (match == null) {
 		return null;
 	}
+	return extractHtmlParagraphs(html, null, match[1]);
+}
+
+function extractHtmlParagraphs(html, wrapperPattern, innerHtml = null) {
+	if (innerHtml == null && wrapperPattern != null) {
+		const match = html.match(wrapperPattern);
+		if (match == null) {
+			return null;
+		}
+		innerHtml = match[1];
+	}
+	if (innerHtml == null) {
+		return null;
+	}
 
 	const paragraphs = [];
 	const paragraphRegex = /<p[^>]*>([\s\S]*?)<\/p>/gi;
-	let paragraphMatch = paragraphRegex.exec(match[1]);
+	let paragraphMatch = paragraphRegex.exec(innerHtml);
 	while (paragraphMatch != null) {
-		const innerHtml = paragraphMatch[1].trim();
-		if (innerHtml.length > 0) {
-			paragraphs.push(`<p>${innerHtml}</p>`);
+		const inner = paragraphMatch[1].trim();
+		if (inner.length > 0 && !/class="action-links"/i.test(paragraphMatch[0])) {
+			paragraphs.push(`<p>${inner}</p>`);
 		}
-		paragraphMatch = paragraphRegex.exec(match[1]);
+		paragraphMatch = paragraphRegex.exec(innerHtml);
 	}
 
 	return paragraphs.length > 0 ? paragraphs : null;
 }
 
-function extractBuyLinkParagraph(html) {
-	const match = html.match(/<div class="buy">[\s\S]*?<a[^>]*href="([^"]+)"[^>]*>[\s\S]*?<span class="action">([^<]+)<\/span>[\s\S]*?<\/a>/i);
-	if (match == null) {
+function extractArticlePurchaseLink(html) {
+	const articleScope = html.match(/<div class="article-single[\s\S]*?<div class="article-single[^"]*product-option-grid"[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/i);
+	const scope = articleScope?.[1] ?? html.slice(0, 120000);
+
+	const buyMatch = scope.match(/<div class="buy">[\s\S]*?<a[^>]*href="([^"]+)"[^>]*>[\s\S]*?<span class="action">([^<]+)<\/span>[\s\S]*?<\/a>/i);
+	if (buyMatch != null) {
+		const href = decodeHtmlEntities(buyMatch[1]);
+		const source = decodeHtmlEntities(buyMatch[2].trim());
+		const priceMatch = scope.match(/<span class="cost[^"]*">([^<]+)<\/span>/i);
+		const price = priceMatch != null ? formatPrice(decodeHtmlEntities(priceMatch[1].trim())) : null;
+		return formatPurchaseLinkParagraph(href, source, price);
+	}
+
+	const supplyMatch = scope.match(/<p class="action-links">[\s\S]*?<a[^>]*href="([^"]+)"[^>]*>\s*Buy From Uncrate Supply\s*<\/a>/i);
+	if (supplyMatch != null) {
+		const href = decodeHtmlEntities(supplyMatch[1]);
+		const priceMatch = scope.match(/\$([0-9][0-9,]*\+?)/);
+		const price = priceMatch != null ? `$${priceMatch[1]}` : null;
+		return formatPurchaseLinkParagraph(href, "Buy from Uncrate Supply", price);
+	}
+
+	return null;
+}
+
+function formatPurchaseLinkParagraph(href, source, price) {
+	let label = source;
+	if (price != null && price.length > 0) {
+		label += ` · ${price}`;
+	}
+	return `<p class="purchase-link"><a href="${href}">${escapeHtml(label)}</a></p>`;
+}
+
+function formatPrice(amount, currency = "USD") {
+	if (amount == null || String(amount).trim().length === 0) {
 		return null;
 	}
 
-	const href = decodeHtmlEntities(match[1]);
-	const action = decodeHtmlEntities(match[2].trim());
-	const priceMatch = html.match(/<div class="buy">[\s\S]*?<span class="cost[^"]*">([^<]+)<\/span>/i);
-	const price = priceMatch != null ? decodeHtmlEntities(priceMatch[1].trim()) : null;
-	let label = action;
-	if (price != null && price.length > 0) {
-		label += ` — $${price}`;
+	const text = String(amount).trim();
+	if (text.includes("+") || text.includes(",")) {
+		return currency === "USD" ? `$${text}` : `${text} ${currency}`;
 	}
 
-	return `<p><a href="${href}">${label}</a></p>`;
+	const value = Number.parseFloat(text);
+	if (Number.isNaN(value)) {
+		return currency === "USD" ? `$${text}` : `${text} ${currency}`;
+	}
+
+	if (currency === "USD") {
+		if (Number.isInteger(value)) {
+			return `$${value.toLocaleString("en-US")}`;
+		}
+		return `$${value.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+	}
+
+	return `${text} ${currency}`;
+}
+
+function extractMetaContent(html, property) {
+	const match = html.match(new RegExp(`<meta[^>]*property="${property}"[^>]*content="([^"]+)"`, "i"))
+		?? html.match(new RegExp(`<meta[^>]*content="([^"]+)"[^>]*property="${property}"`, "i"));
+	return match != null ? decodeHtmlEntities(match[1]) : null;
+}
+
+function extractMetaImageUrl(html) {
+	const imageUrl = extractMetaContent(html, "og:image:secure_url")
+		?? extractMetaContent(html, "og:image:url")
+		?? extractMetaContent(html, "og:image");
+	if (imageUrl == null) {
+		return null;
+	}
+	return imageUrl.startsWith("http") ? imageUrl : `https:${imageUrl}`;
+}
+
+function extractCanonicalUrl(html) {
+	const match = html.match(/<link[^>]*rel="canonical"[^>]*href="([^"]+)"/i)
+		?? html.match(/<link[^>]*href="([^"]+)"[^>]*rel="canonical"/i);
+	return match != null ? decodeHtmlEntities(match[1]) : null;
+}
+
+function escapeHtml(text) {
+	return text
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;");
 }
 
 function decodeHtmlEntities(text) {

@@ -24,13 +24,15 @@ read_version_field() {
 }
 
 LOGO_URL="$(read_version_field logo_url)"
-if [[ -z "$LOGO_URL" ]]; then
-	echo "Missing logo_url in $VERSION_FILE" >&2
-	exit 1
-fi
-
+ICON_TEXT="$(read_version_field icon_text)"
+ICON_TEXT_SCALE="$(read_version_field icon_text_scale 0.62)"
 LOGO_SCALE="$(read_version_field logo_scale 0.72)"
 LOGO_CROP="$(read_version_field logo_crop false)"
+
+if [[ -z "$LOGO_URL" && -z "$ICON_TEXT" ]]; then
+	echo "Missing logo_url or icon_text in $VERSION_FILE" >&2
+	exit 1
+fi
 
 mkdir -p "$CONNECTOR_DIR/resources"
 
@@ -39,50 +41,16 @@ import io
 import urllib.request
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 bg = tuple(int(x) for x in "${BG_RGB}".split(","))
 size = int("${SIZE}")
 logo_url = "${LOGO_URL}"
+icon_text = "${ICON_TEXT}"
+icon_text_scale = float("${ICON_TEXT_SCALE}")
 shape = "${ICON_SHAPE}"
 logo_scale = float("${LOGO_SCALE}")
 logo_crop = "${LOGO_CROP}".lower() in ("1", "true", "yes")
-
-with urllib.request.urlopen(
-	urllib.request.Request(
-		logo_url,
-		headers={"User-Agent": "Mozilla/5.0 (compatible; TapestryConnectorBuild/1.0)"},
-	),
-) as response:
-    logo = Image.open(io.BytesIO(response.read())).convert("RGBA")
-
-if logo_crop:
-    pixels = logo.load()
-    width, height = logo.size
-    background = pixels[0, 0]
-
-    def is_content(pixel):
-        red, green, blue, alpha = pixel
-        if alpha < 32:
-            return False
-        return (
-            abs(red - background[0])
-            + abs(green - background[1])
-            + abs(blue - background[2])
-            > 30
-        )
-
-    min_x, min_y, max_x, max_y = width, height, 0, 0
-    for y in range(height):
-        for x in range(width):
-            if is_content(pixels[x, y]):
-                min_x = min(min_x, x)
-                min_y = min(min_y, y)
-                max_x = max(max_x, x)
-                max_y = max(max_y, y)
-
-    if max_x >= min_x and max_y >= min_y:
-        logo = logo.crop((min_x, min_y, max_x + 1, max_y + 1))
 
 canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
 draw = ImageDraw.Draw(canvas)
@@ -91,11 +59,72 @@ if shape == "circle":
 else:
 	draw.rectangle((0, 0, size - 1, size - 1), fill=bg + (255,))
 
-logo_max = int(size * logo_scale)
-logo.thumbnail((logo_max, logo_max), Image.Resampling.LANCZOS)
-x = (size - logo.width) // 2
-y = (size - logo.height) // 2
-canvas.paste(logo, (x, y), logo)
+if icon_text:
+	font_size = max(24, int(size * icon_text_scale))
+	font = None
+	for font_path in (
+		"/usr/share/fonts/liberation/LiberationSerif-Regular.ttf",
+		"/usr/share/fonts/TTF/DejaVuSerif.ttf",
+		"/usr/share/fonts/dejavu/DejaVuSerif.ttf",
+		"/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
+		"/System/Library/Fonts/Supplemental/Times New Roman.ttf",
+	):
+		try:
+			font = ImageFont.truetype(font_path, font_size)
+			break
+		except OSError:
+			continue
+	if font is None:
+		font = ImageFont.load_default()
+
+	text_bbox = draw.textbbox((0, 0), icon_text, font=font)
+	text_width = text_bbox[2] - text_bbox[0]
+	text_height = text_bbox[3] - text_bbox[1]
+	text_x = (size - text_width) // 2 - text_bbox[0]
+	text_y = (size - text_height) // 2 - text_bbox[1]
+	draw.text((text_x, text_y), icon_text, fill=(255, 255, 255, 255), font=font)
+else:
+	with urllib.request.urlopen(
+		urllib.request.Request(
+			logo_url,
+			headers={"User-Agent": "Mozilla/5.0 (compatible; TapestryConnectorBuild/1.0)"},
+		),
+	) as response:
+		logo = Image.open(io.BytesIO(response.read())).convert("RGBA")
+
+	if logo_crop:
+		pixels = logo.load()
+		width, height = logo.size
+		background = pixels[0, 0]
+
+		def is_content(pixel):
+			red, green, blue, alpha = pixel
+			if alpha < 32:
+				return False
+			return (
+				abs(red - background[0])
+				+ abs(green - background[1])
+				+ abs(blue - background[2])
+				> 30
+			)
+
+		min_x, min_y, max_x, max_y = width, height, 0, 0
+		for y in range(height):
+			for x in range(width):
+				if is_content(pixels[x, y]):
+					min_x = min(min_x, x)
+					min_y = min(min_y, y)
+					max_x = max(max_x, x)
+					max_y = max(max_y, y)
+
+		if max_x >= min_x and max_y >= min_y:
+			logo = logo.crop((min_x, min_y, max_x + 1, max_y + 1))
+
+	logo_max = int(size * logo_scale)
+	logo.thumbnail((logo_max, logo_max), Image.Resampling.LANCZOS)
+	x = (size - logo.width) // 2
+	y = (size - logo.height) // 2
+	canvas.paste(logo, (x, y), logo)
 
 flatten = Image.new("RGB", (size, size), bg)
 flatten.paste(canvas, mask=canvas.split()[3])
