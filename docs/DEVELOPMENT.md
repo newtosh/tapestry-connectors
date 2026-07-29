@@ -46,8 +46,9 @@ OPEN_LOOM=1 ./scripts/mac-mini-update.sh
 ## Build & package
 
 ```bash
-make build      # regenerate icon + embed data URI in plugin-config
-make package    # → Downloads/com.polygon.feed-v<semver>.tapestry
+make build      # all connectors in Makefile CONNECTORS list
+make package    # → Downloads/*.tapestry for each
+CONNECTOR_ID=com.uncrate.feed make build   # one connector only
 ```
 
 Install the `.tapestry` file on iOS via **Settings → Connectors → Add a Connector**.
