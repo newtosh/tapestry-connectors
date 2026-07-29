@@ -6,7 +6,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 CONNECTOR_DIR="$REPO_ROOT/Source/com.polygon.feed"
 ICON_PNG="$CONNECTOR_DIR/icon.png"
 
-BG_RGB="${ICON_BG_RGB:-245,245,245}"
+BG_RGB="${ICON_BG_RGB:-18,18,18}"
 LOGO_URL="${POLYGON_LOGO_URL:-https://www.polygon.com/public/build/images/favicon-96x96.png}"
 SIZE="${ICON_SIZE:-180}"
 

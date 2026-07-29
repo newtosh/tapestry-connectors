@@ -4,6 +4,12 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.polygon.feed 0.1.5] - 2026-07-29
+
+### Changed
+
+- Rebuild icon with dark background (`#121212`) now that post layout uses the author avatar path where contrast works.
+
 ## [com.polygon.feed 0.1.4] - 2026-07-29
 
 ### Fixed
