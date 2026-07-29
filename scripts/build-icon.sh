@@ -3,13 +3,25 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-CONNECTOR_DIR="$REPO_ROOT/Source/com.polygon.feed"
+CONNECTOR_ID="${CONNECTOR_ID:-com.polygon.feed}"
+CONNECTOR_DIR="$REPO_ROOT/Source/$CONNECTOR_ID"
+VERSION_FILE="$CONNECTOR_DIR/version.json"
 ICON_PNG="$CONNECTOR_DIR/icon.png"
 
+if [[ ! -f "$VERSION_FILE" ]]; then
+	echo "Missing $VERSION_FILE" >&2
+	exit 1
+fi
+
 BG_RGB="${ICON_BG_RGB:-18,18,18}"
-LOGO_URL="${POLYGON_LOGO_URL:-https://www.polygon.com/public/build/images/favicon-96x96.png}"
 SIZE="${ICON_SIZE:-180}"
 ICON_SHAPE="${ICON_SHAPE:-circle}"
+
+LOGO_URL="$(python3 -c "import json; print(json.load(open('$VERSION_FILE')).get('logo_url', ''))")"
+if [[ -z "$LOGO_URL" ]]; then
+	echo "Missing logo_url in $VERSION_FILE" >&2
+	exit 1
+fi
 
 mkdir -p "$CONNECTOR_DIR/resources"
 
@@ -25,7 +37,12 @@ size = int("${SIZE}")
 logo_url = "${LOGO_URL}"
 shape = "${ICON_SHAPE}"
 
-with urllib.request.urlopen(logo_url) as response:
+with urllib.request.urlopen(
+	urllib.request.Request(
+		logo_url,
+		headers={"User-Agent": "Mozilla/5.0 (compatible; TapestryConnectorBuild/1.0)"},
+	),
+) as response:
     logo = Image.open(io.BytesIO(response.read())).convert("RGBA")
 
 canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))

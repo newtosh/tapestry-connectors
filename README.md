@@ -8,7 +8,8 @@ Inspired by [chockenberry/TapestryConnectors](https://github.com/chockenberry/Ta
 
 | Connector | Version | Description |
 |-----------|---------|-------------|
-| [Polygon](Source/com.polygon.feed/) | 0.1.0 | Optimized Polygon.com RSS — dark icon, deduped intro, article layout |
+| [Polygon](Source/com.polygon.feed/) | 0.1.7 | Optimized Polygon.com RSS — dark icon, deduped intro, post layout |
+| [Uncrate](Source/com.uncrate.feed/) | 0.1.0 | Optimized Uncrate RSS — clean blurbs, category labels, hero images |
 
 ## Install on iOS
 
@@ -43,8 +44,8 @@ git pull && make build    # on the Mac mini
 ## Build from source
 
 ```bash
-make build      # regenerate icons + plugin-config
-make package    # → Downloads/com.polygon.feed-v<semver>.tapestry
+make build      # regenerate icons + plugin-config for all connectors
+make package    # → Downloads/*.tapestry for each connector
 ```
 
 Requires Python 3 and Pillow (`pip install pillow`) when rebuilding icons.

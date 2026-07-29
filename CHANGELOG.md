@@ -4,6 +4,15 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.uncrate.feed 0.1.0] - 2026-07-29
+
+### Added
+
+- Uncrate connector for the FeedBurner RSS feed (`feeds.feedburner.com/uncrate`).
+- Strips floated thumbnails and “Visit Uncrate for the full post” boilerplate from item bodies.
+- Category labels via annotations; hero images from RSS enclosures.
+- Dark circular branded icon (post layout).
+
 ## [com.polygon.feed 0.1.7] - 2026-07-29
 
 ### Fixed
