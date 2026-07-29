@@ -40,7 +40,7 @@ jobs:
           {
             echo "## Connectors"
             echo ""
-            for id in com.polygon.feed com.uncrate.feed; do
+            for id in com.polygon.feed com.uncrate.feed com.gearpatrol.feed; do
               semver=$(python3 -c "import json; print(json.load(open(\"Source/$id/version.json\"))['semver'])")
               tapestry_version=$(python3 -c "import json; print(json.load(open(\"Source/$id/version.json\"))['tapestry_version'])")
               echo "- **${id}** v${semver} (Tapestry version ${tapestry_version})"
