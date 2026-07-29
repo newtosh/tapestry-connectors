@@ -4,6 +4,18 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.polygon.feed 0.1.4] - 2026-07-29
+
+### Fixed
+
+- Switch to `item_style: post` so the timeline uses the author avatar (hosted icon) instead of `lookupIcon(polygon.com)`, which always returns the transparent wireframe favicon in article layout.
+- Apply the Glass connector identity pattern: writer name in `identity.name`, branded `identity.avatar`, service label in `identity.username`.
+- Fix missing spaces after inline HTML tags (e.g. `Battlefield 6has`).
+
+### Changed
+
+- Article layout dropped for now — Tapestry article style sources its header icon from the site domain, which cannot be overridden by connector config.
+
 ## [com.polygon.feed 0.1.3] - 2026-07-29
 
 ### Fixed
