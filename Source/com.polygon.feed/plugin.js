@@ -17,22 +17,20 @@ function loadIconUrl() {
 }
 
 function createAuthorIdentity(writerName) {
-	const identity = Identity.createWithName("Polygon");
-	identity.name = writerName ?? "Polygon";
-	identity.username = "Polygon";
+	if (writerName == null || writerName.length === 0) {
+		return null;
+	}
+	const identity = Identity.createWithName(writerName);
 	identity.uri = POLYGON_BASE_URL;
-	identity.avatar = POLYGON_ICON;
 	return identity;
 }
 
 async function verify() {
-	const verification = {
+	processVerification({
 		displayName: "Polygon",
 		icon: POLYGON_ICON,
-		baseUrl: POLYGON_BASE_URL,
-		accountIdentity: createAuthorIdentity("Polygon")
-	};
-	processVerification(verification);
+		baseUrl: POLYGON_BASE_URL
+	});
 }
 
 async function load() {
@@ -96,7 +94,10 @@ async function load() {
 			if (content != null) {
 				resultItem.body = fixInlineTagSpacing(content);
 			}
-			resultItem.author = createAuthorIdentity(authorName);
+			const author = createAuthorIdentity(authorName);
+			if (author != null) {
+				resultItem.author = author;
+			}
 
 			const attachments = [];
 

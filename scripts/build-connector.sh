@@ -20,7 +20,9 @@ from pathlib import Path
 
 connector_dir = Path("$CONNECTOR_DIR")
 version = json.loads((connector_dir / "version.json").read_text())
-icon_url = version["icon_url"]
+tapestry_version = int(version["tapestry_version"])
+base_icon_url = version["icon_url"].split("?")[0]
+icon_url = f"{base_icon_url}?v={tapestry_version}"
 
 resources_dir = connector_dir / "resources"
 resources_dir.mkdir(parents=True, exist_ok=True)

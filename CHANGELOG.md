@@ -4,6 +4,16 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.polygon.feed 0.1.6] - 2026-07-29
+
+### Fixed
+
+- Restore `item_style: article` for site → title → byline layout (matching iOS article cards).
+- Hide `service_name` in the header (`default_service_name_visibility: hidden`) so only "Polygon" shows, not "Gaming".
+- Author is the RSS writer name only (no service username row).
+- Circular dark icon (`#121212`) so Tapestry's round avatar mask does not show a white ring around a square light icon.
+- Append `?v=<tapestry_version>` to the hosted icon URL to bust CDN/device cache.
+
 ## [com.polygon.feed 0.1.5] - 2026-07-29
 
 ### Changed
