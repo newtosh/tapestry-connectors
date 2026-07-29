@@ -81,7 +81,7 @@ async function load() {
 				const purchaseLinks = extractPurchaseLinksFromHtml(encodedContent);
 				if (purchaseLinks != null) {
 					if (content != null && content.length > 0) {
-						content += `\n${purchaseLinks}`;
+						content += `\n<p><br></p>\n${purchaseLinks}`;
 					} else {
 						content = purchaseLinks;
 					}
@@ -150,7 +150,7 @@ function extractPurchaseLinksFromHtml(html) {
 	}
 
 	const isRoundup = blocks.length > 1;
-	const paragraphs = [];
+	const linkEntries = [];
 
 	for (const block of blocks) {
 		const anchorRegex = /<a[^>]*wp-block-gearpatrol-product-retailer-links__retailer__link[^>]*>[\s\S]*?<\/a>/gi;
@@ -162,14 +162,35 @@ function extractPurchaseLinksFromHtml(html) {
 				const href = decodeHtmlEntities(hrefMatch[1]);
 				const label = buildPurchaseLabel(anchor, isRoundup);
 				if (label.length > 0) {
-					paragraphs.push(formatPurchaseLinkParagraph(href, label));
+					linkEntries.push({href, label});
 				}
 			}
 			anchorMatch = anchorRegex.exec(block);
 		}
 	}
 
-	return paragraphs.length > 0 ? paragraphs.join("\n") : null;
+	if (linkEntries.length === 0) {
+		return null;
+	}
+
+	const paragraphs = [];
+	const linksByDestination = new Map();
+	for (const entry of linkEntries) {
+		const destination = normalizePurchaseHref(entry.href);
+		const existing = linksByDestination.get(destination);
+		if (existing == null) {
+			linksByDestination.set(destination, {href: entry.href, labels: [entry.label]});
+		} else {
+			existing.labels.push(entry.label);
+		}
+	}
+
+	for (const {href, labels} of linksByDestination.values()) {
+		const label = labels.length === 1 ? labels[0] : labels.join(" · ");
+		paragraphs.push(formatPurchaseLinkParagraph(href, label));
+	}
+
+	return paragraphs.join("\n");
 }
 
 function buildPurchaseLabel(anchorHtml, isRoundup) {
@@ -229,6 +250,18 @@ function attachmentUrlFromMedia(mediaAttributes) {
 		return mediaAttributes.url;
 	}
 	return null;
+}
+
+function normalizePurchaseHref(href) {
+	const skimMatch = href.match(/[?&]url=([^&]+)/i);
+	if (skimMatch != null) {
+		try {
+			return decodeURIComponent(skimMatch[1]);
+		} catch {
+			return skimMatch[1];
+		}
+	}
+	return href;
 }
 
 function formatPurchaseLinkParagraph(href, label) {
