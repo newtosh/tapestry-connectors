@@ -5,7 +5,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 CONNECTOR_DIR="$REPO_ROOT/Source/com.polygon.feed"
 ICON_PNG="$CONNECTOR_DIR/icon.png"
-ICON_URI="$CONNECTOR_DIR/resources/icon-uri.txt"
 
 BG_RGB="${ICON_BG_RGB:-18,18,18}"
 LOGO_URL="${POLYGON_LOGO_URL:-https://www.polygon.com/public/build/images/favicon-96x96.png}"
@@ -14,9 +13,7 @@ SIZE="${ICON_SIZE:-180}"
 mkdir -p "$CONNECTOR_DIR/resources"
 
 python3 <<PY
-import base64
 import io
-import os
 import urllib.request
 from pathlib import Path
 
@@ -40,12 +37,5 @@ icon_path = Path("${ICON_PNG}")
 icon_path.parent.mkdir(parents=True, exist_ok=True)
 canvas.convert("RGB").save(icon_path, "PNG")
 
-buf = io.BytesIO()
-canvas.convert("RGB").save(buf, format="PNG")
-data_uri = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
-
-uri_path = Path("${ICON_URI}")
-uri_path.write_text(data_uri, encoding="utf-8")
 print(f"Wrote {icon_path}")
-print(f"Wrote {uri_path} ({len(data_uri)} chars)")
 PY

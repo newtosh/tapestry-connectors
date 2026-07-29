@@ -3,17 +3,17 @@
 // Optimized Polygon.com RSS connector.
 // Forked from TheIconfactory Tapestry xml.feed connector.
 
-const POLYGON_ICON = loadIconUri();
+const POLYGON_ICON = loadIconUrl();
 const POLYGON_BASE_URL = "https://www.polygon.com";
 
 const userAgent = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_3; de-de) AppleWebKit/531.22.7 (KHTML, like Gecko) NetNewsWire/3.2.7 Tapestry/1.3";
 
-function loadIconUri() {
-	const iconUri = require("icon-uri.txt");
-	if (iconUri === false) {
-		throw new Error("Missing resources/icon-uri.txt — run: make build");
+function loadIconUrl() {
+	const iconUrl = require("icon-url.txt");
+	if (iconUrl === false) {
+		throw new Error("Missing resources/icon-url.txt — run: make build");
 	}
-	return iconUri;
+	return iconUrl;
 }
 
 function createPolygonIdentity(name) {

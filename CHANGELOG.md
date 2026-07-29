@@ -4,6 +4,12 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.polygon.feed 0.1.2] - 2026-07-29
+
+### Fixed
+
+- Use a hosted HTTPS icon URL (GitHub raw) for `verify()`, feed preview, and author avatars. Loom/Tapestry does not apply data-URI icons in those runtime paths and was falling back to Polygon's transparent favicon.
+
 ## [com.polygon.feed 0.1.1] - 2026-07-29
 
 ### Fixed

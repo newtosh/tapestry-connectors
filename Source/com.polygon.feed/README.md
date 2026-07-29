@@ -1,11 +1,17 @@
-# Polygon (Optimized) — v0.1.1
+# Polygon (Optimized) — v0.1.2
 
 A Tapestry connector for [Polygon](https://www.polygon.com) that improves on the generic Blog Feed connector:
 
-- Dark-background feed icon (180×180) for timeline contrast
-- Author avatars use the same icon (fixes invisible favicon in article preview headers)
+- Dark-background feed icon (180×180) hosted on GitHub for timeline contrast
+- Author avatars and feed verification use the same hosted icon URL
 - Removes duplicate intro text when RSS `<description>` repeats the first paragraph of `<content:encoded>`
 - Uses `item_style: article` for long-form reading
+
+## Icon URL
+
+The branded icon is served from `version.json` → `icon_url` (GitHub raw). Tapestry Loom applies `plugin-config.json` icons everywhere, but **feed preview and verify** need a real HTTPS URL — data URIs only work in the connector metadata panel.
+
+After changing `icon.png`, commit and push so the hosted URL updates, then bump `tapestry_version` and reinstall.
 
 ## Versioning
 

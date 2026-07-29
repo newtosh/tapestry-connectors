@@ -20,11 +20,15 @@ from pathlib import Path
 
 connector_dir = Path("$CONNECTOR_DIR")
 version = json.loads((connector_dir / "version.json").read_text())
-icon_uri = (connector_dir / "resources/icon-uri.txt").read_text().strip()
+icon_url = version["icon_url"]
+
+resources_dir = connector_dir / "resources"
+resources_dir.mkdir(parents=True, exist_ok=True)
+(resources_dir / "icon-url.txt").write_text(icon_url, encoding="utf-8")
 
 config_path = connector_dir / "plugin-config.json"
 config = json.loads(config_path.read_text())
-config["icon"] = icon_uri
+config["icon"] = icon_url
 config["version"] = int(version["tapestry_version"])
 config["semver"] = version["semver"]
 config_path.write_text(json.dumps(config, indent=2) + "\n")
