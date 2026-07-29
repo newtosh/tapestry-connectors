@@ -138,29 +138,85 @@ async function load() {
 }
 
 function extractPurchaseLinksFromHtml(html) {
-	const scopeMatch = html.match(/<ul class="wp-block-gearpatrol-product-retailer-links">([\s\S]*?)<\/ul>/i);
-	if (scopeMatch == null) {
+	const blocks = [];
+	const ulRegex = /<ul class="wp-block-gearpatrol-product-retailer-links">([\s\S]*?)<\/ul>/gi;
+	let ulMatch = ulRegex.exec(html);
+	while (ulMatch != null) {
+		blocks.push(ulMatch[1]);
+		ulMatch = ulRegex.exec(html);
+	}
+	if (blocks.length === 0) {
 		return null;
 	}
 
+	const isRoundup = blocks.length > 1;
 	const paragraphs = [];
-	const anchorRegex = /<a[^>]*wp-block-gearpatrol-product-retailer-links__retailer__link[^>]*>[\s\S]*?<\/a>/gi;
-	let anchorMatch = anchorRegex.exec(scopeMatch[1]);
-	while (anchorMatch != null) {
-		const anchor = anchorMatch[0];
-		const hrefMatch = anchor.match(/href="([^"]+)"/i);
-		const textMatch = anchor.match(/>([^<]+)<\/a>/i);
-		if (hrefMatch != null && textMatch != null) {
-			const href = decodeHtmlEntities(hrefMatch[1]);
-			const label = decodeHtmlEntities(textMatch[1].replace(/\s+/g, " ").trim());
-			if (label.length > 0) {
-				paragraphs.push(formatPurchaseLinkParagraph(href, label));
+
+	for (const block of blocks) {
+		const anchorRegex = /<a[^>]*wp-block-gearpatrol-product-retailer-links__retailer__link[^>]*>[\s\S]*?<\/a>/gi;
+		let anchorMatch = anchorRegex.exec(block);
+		while (anchorMatch != null) {
+			const anchor = anchorMatch[0];
+			const hrefMatch = anchor.match(/href="([^"]+)"/i);
+			if (hrefMatch != null) {
+				const href = decodeHtmlEntities(hrefMatch[1]);
+				const label = buildPurchaseLabel(anchor, isRoundup);
+				if (label.length > 0) {
+					paragraphs.push(formatPurchaseLinkParagraph(href, label));
+				}
 			}
+			anchorMatch = anchorRegex.exec(block);
 		}
-		anchorMatch = anchorRegex.exec(html);
 	}
 
 	return paragraphs.length > 0 ? paragraphs.join("\n") : null;
+}
+
+function buildPurchaseLabel(anchorHtml, isRoundup) {
+	const textMatch = anchorHtml.match(/>([^<]+)<\/a>/i);
+	const linkText = textMatch != null
+		? decodeHtmlEntities(textMatch[1].replace(/\s+/g, " ").trim())
+		: "";
+
+	const productName = decodeHtmlEntities(extractAnchorAttribute(anchorHtml, "data-prodName") ?? "");
+	const retailer = decodeHtmlEntities(extractAnchorAttribute(anchorHtml, "data-retailer") ?? "");
+	const shortName = shortenProductName(productName, retailer);
+
+	if (!isRoundup) {
+		return linkText;
+	}
+
+	if (linkText.length === 0) {
+		return shortName;
+	}
+
+	if (/^learn more$/i.test(linkText)) {
+		return retailer.length > 0 ? `${shortName} · ${retailer}` : shortName;
+	}
+
+	if (/^starts at\b/i.test(linkText)) {
+		return retailer.length > 0 ? `${shortName} · ${linkText} at ${retailer}` : `${shortName} · ${linkText}`;
+	}
+
+	return `${shortName} · ${linkText}`;
+}
+
+function extractAnchorAttribute(anchorHtml, attributeName) {
+	const match = anchorHtml.match(new RegExp(`${attributeName}="([^"]*)"`, "i"));
+	return match != null ? match[1] : null;
+}
+
+function shortenProductName(productName, retailer) {
+	if (productName.length === 0) {
+		return retailer.length > 0 ? retailer : "Product";
+	}
+	if (retailer.length > 0 && productName.toLowerCase().startsWith(retailer.toLowerCase())) {
+		const stripped = productName.slice(retailer.length).trim();
+		if (stripped.length > 0) {
+			return stripped;
+		}
+	}
+	return productName;
 }
 
 function extractFeaturedImageUrl(html) {
