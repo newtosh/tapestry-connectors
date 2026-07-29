@@ -17,11 +17,20 @@ BG_RGB="${ICON_BG_RGB:-18,18,18}"
 SIZE="${ICON_SIZE:-180}"
 ICON_SHAPE="${ICON_SHAPE:-circle}"
 
-LOGO_URL="$(python3 -c "import json; print(json.load(open('$VERSION_FILE')).get('logo_url', ''))")"
+read_version_field() {
+	local key="$1"
+	local default_value="${2-}"
+	python3 -c "import json; v=json.load(open('$VERSION_FILE')); print(v.get('$key', '$default_value'))"
+}
+
+LOGO_URL="$(read_version_field logo_url)"
 if [[ -z "$LOGO_URL" ]]; then
 	echo "Missing logo_url in $VERSION_FILE" >&2
 	exit 1
 fi
+
+LOGO_SCALE="$(read_version_field logo_scale 0.72)"
+LOGO_CROP="$(read_version_field logo_crop false)"
 
 mkdir -p "$CONNECTOR_DIR/resources"
 
@@ -36,6 +45,8 @@ bg = tuple(int(x) for x in "${BG_RGB}".split(","))
 size = int("${SIZE}")
 logo_url = "${LOGO_URL}"
 shape = "${ICON_SHAPE}"
+logo_scale = float("${LOGO_SCALE}")
+logo_crop = "${LOGO_CROP}".lower() in ("1", "true", "yes")
 
 with urllib.request.urlopen(
 	urllib.request.Request(
@@ -45,6 +56,34 @@ with urllib.request.urlopen(
 ) as response:
     logo = Image.open(io.BytesIO(response.read())).convert("RGBA")
 
+if logo_crop:
+    pixels = logo.load()
+    width, height = logo.size
+    background = pixels[0, 0]
+
+    def is_content(pixel):
+        red, green, blue, alpha = pixel
+        if alpha < 32:
+            return False
+        return (
+            abs(red - background[0])
+            + abs(green - background[1])
+            + abs(blue - background[2])
+            > 30
+        )
+
+    min_x, min_y, max_x, max_y = width, height, 0, 0
+    for y in range(height):
+        for x in range(width):
+            if is_content(pixels[x, y]):
+                min_x = min(min_x, x)
+                min_y = min(min_y, y)
+                max_x = max(max_x, x)
+                max_y = max(max_y, y)
+
+    if max_x >= min_x and max_y >= min_y:
+        logo = logo.crop((min_x, min_y, max_x + 1, max_y + 1))
+
 canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
 draw = ImageDraw.Draw(canvas)
 if shape == "circle":
@@ -52,7 +91,7 @@ if shape == "circle":
 else:
 	draw.rectangle((0, 0, size - 1, size - 1), fill=bg + (255,))
 
-logo_max = int(size * 0.72)
+logo_max = int(size * logo_scale)
 logo.thumbnail((logo_max, logo_max), Image.Resampling.LANCZOS)
 x = (size - logo.width) // 2
 y = (size - logo.height) // 2

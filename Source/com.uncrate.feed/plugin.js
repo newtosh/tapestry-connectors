@@ -62,9 +62,18 @@ async function load() {
 			const date = (itemDate == null ? new Date() : new Date(itemDate));
 
 			const title = extractString(item.title);
-			let content = extractString((item["content:encoded"] ?? item.description), true);
-			if (content != null) {
-				content = cleanUncrateBody(content);
+			let content = null;
+			let heroImageUrl = null;
+			const article = await fetchUncrateArticleContent(url);
+			if (article != null) {
+				content = article.body;
+				heroImageUrl = article.imageUrl;
+			}
+			if (content == null) {
+				content = extractString((item["content:encoded"] ?? item.description), true);
+				if (content != null) {
+					content = cleanUncrateBody(content);
+				}
 			}
 
 			const resultItem = Item.createWithUriDate(url, date);
@@ -82,7 +91,9 @@ async function load() {
 			}
 
 			const attachments = [];
-			if (item["enclosure$attrs"] != null) {
+			if (heroImageUrl != null) {
+				attachments.push(MediaAttachment.createWithUrl(heroImageUrl));
+			} else if (item["enclosure$attrs"] != null) {
 				const enclosure = item["enclosure$attrs"];
 				if (enclosure.url != null) {
 					attachments.push(MediaAttachment.createWithUrl(enclosure.url));
@@ -100,6 +111,92 @@ async function load() {
 	} else {
 		processResults([]);
 	}
+}
+
+async function fetchUncrateArticleContent(url) {
+	try {
+		const html = await sendRequest(url, "GET", null, {"user-agent": userAgent});
+		if (html == null || html.length === 0) {
+			return null;
+		}
+
+		const body = buildArticleBodyFromHtml(html);
+		const imageMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i)
+			?? html.match(/<meta[^>]*content="([^"]+)"[^>]*property="og:image"/i);
+		const imageUrl = imageMatch != null ? decodeHtmlEntities(imageMatch[1]) : null;
+
+		if (body == null && imageUrl == null) {
+			return null;
+		}
+
+		return {body, imageUrl};
+	} catch (error) {
+		return null;
+	}
+}
+
+function buildArticleBodyFromHtml(html) {
+	const paragraphs = extractCopyWrapperParagraphs(html);
+	if (paragraphs == null || paragraphs.length === 0) {
+		return null;
+	}
+
+	let body = paragraphs.join("\n");
+	const buyLink = extractBuyLinkParagraph(html);
+	if (buyLink != null) {
+		body += `\n${buyLink}`;
+	}
+
+	return body;
+}
+
+function extractCopyWrapperParagraphs(html) {
+	const match = html.match(/<div class="copy-wrapper[^"]*">[\s\S]*?<h[12][^>]*class="article-title"[\s\S]*?<\/h[12]>([\s\S]*?)<\/div>\s*(?:<div class="ad-wrapper"|<!-- mt:Ignore)/i);
+	if (match == null) {
+		return null;
+	}
+
+	const paragraphs = [];
+	const paragraphRegex = /<p[^>]*>([\s\S]*?)<\/p>/gi;
+	let paragraphMatch = paragraphRegex.exec(match[1]);
+	while (paragraphMatch != null) {
+		const innerHtml = paragraphMatch[1].trim();
+		if (innerHtml.length > 0) {
+			paragraphs.push(`<p>${innerHtml}</p>`);
+		}
+		paragraphMatch = paragraphRegex.exec(match[1]);
+	}
+
+	return paragraphs.length > 0 ? paragraphs : null;
+}
+
+function extractBuyLinkParagraph(html) {
+	const match = html.match(/<div class="buy">[\s\S]*?<a[^>]*href="([^"]+)"[^>]*>[\s\S]*?<span class="action">([^<]+)<\/span>[\s\S]*?<\/a>/i);
+	if (match == null) {
+		return null;
+	}
+
+	const href = decodeHtmlEntities(match[1]);
+	const action = decodeHtmlEntities(match[2].trim());
+	const priceMatch = html.match(/<div class="buy">[\s\S]*?<span class="cost[^"]*">([^<]+)<\/span>/i);
+	const price = priceMatch != null ? decodeHtmlEntities(priceMatch[1].trim()) : null;
+	let label = action;
+	if (price != null && price.length > 0) {
+		label += ` — $${price}`;
+	}
+
+	return `<p><a href="${href}">${label}</a></p>`;
+}
+
+function decodeHtmlEntities(text) {
+	return text
+		.replace(/&nbsp;/g, "\u00A0")
+		.replace(/&amp;/g, "&")
+		.replace(/&lt;/g, "<")
+		.replace(/&gt;/g, ">")
+		.replace(/&quot;/g, "\"")
+		.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+		.replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCharCode(parseInt(code, 16)));
 }
 
 function formatCategory(category) {
