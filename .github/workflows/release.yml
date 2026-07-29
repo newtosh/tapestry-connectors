@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v0.1.8)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        run: pip install pillow
+
+      - name: Build and package connectors
+        run: make package
+
+      - name: List release artifacts
+        run: ls -lh Downloads/*.tapestry
+
+      - name: Generate release notes
+        run: |
+          {
+            echo "## Connectors"
+            echo ""
+            for id in com.polygon.feed com.uncrate.feed; do
+              semver=$(python3 -c "import json; print(json.load(open(\"Source/$id/version.json\"))['semver'])")
+              tapestry_version=$(python3 -c "import json; print(json.load(open(\"Source/$id/version.json\"))['tapestry_version'])")
+              echo "- **${id}** v${semver} (Tapestry version ${tapestry_version})"
+            done
+            echo ""
+            echo "## Install on iOS"
+            echo ""
+            echo "1. Download the \`.tapestry\` file for the connector you want."
+            echo "2. AirDrop or save it to Files / iCloud Drive."
+            echo "3. In Tapestry: **Settings → Connectors → Add a Connector** → select the file."
+            echo ""
+            echo "If you already have an older build installed, bumping the Tapestry integer \`version\` in the connector may require removing and reinstalling."
+          } > release-notes.md
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: ${{ github.event.inputs.tag || github.ref_name }}
+          body_path: release-notes.md
+          files: |
+            Downloads/com.*.feed-v*.tapestry
+          draft: false
+          prerelease: false

@@ -8,18 +8,29 @@ Inspired by [chockenberry/TapestryConnectors](https://github.com/chockenberry/Ta
 
 | Connector | Version | Description |
 |-----------|---------|-------------|
-| [Polygon](Source/com.polygon.feed/) | 0.1.7 | Optimized Polygon.com RSS — dark icon, deduped intro, post layout |
-| [Uncrate](Source/com.uncrate.feed/) | 0.1.0 | Optimized Uncrate RSS — clean blurbs, category labels, hero images |
+| [Polygon](Source/com.polygon.feed/) | 0.1.8 | Optimized Polygon.com RSS — dark icon, deduped intro, post layout |
+| [Uncrate](Source/com.uncrate.feed/) | 0.1.3 | Optimized Uncrate RSS — summaries, purchase links, hero images |
 
 ## Install on iOS
 
 **From a release package:**
 
-1. Download `com.polygon.feed-v0.1.0.tapestry` from [Releases](https://github.com/newtosh/tapestry-connectors/releases) (or run `make package` locally).
+1. Download a `.tapestry` file from **[Releases](https://github.com/newtosh/tapestry-connectors/releases)** (or run `make package` locally).
 2. AirDrop or save to iCloud Drive.
 3. **Tapestry → Settings → Connectors → Add a Connector** → select the file.
 
 **Updating:** bump `tapestry_version` in the connector's `version.json`, package a new `.tapestry`, and reinstall (or remove the old connector first if the integer version did not change).
+
+## Publishing a release
+
+Releases are built automatically by GitHub Actions when you push a version tag:
+
+```bash
+git tag v0.1.8
+git push origin v0.1.8
+```
+
+Or run the **Release** workflow manually from the repository's **Actions** tab (provide a tag name such as `v0.1.8`). The workflow packages every connector in `Makefile` and attaches the `.tapestry` files to the GitHub release page.
 
 ## Development (Mac mini + Loom)
 
@@ -55,6 +66,7 @@ Requires Python 3 and Pillow (`pip install pillow`) when rebuilding icons.
 ```text
 Source/                 Connectors (one folder per reverse-domain id)
 Downloads/              Packaged .tapestry outputs (gitignored)
+.github/workflows/      CI — release packaging on version tags
 scripts/                Portable build + Mac mini update helpers
 docs/                   Development guide
 examples/remote-rsync/  Optional private rsync workflow (not used by default)
