@@ -40,7 +40,8 @@ jobs:
           {
             echo "## Connectors"
             echo ""
-            for id in com.polygon.feed com.uncrate.feed com.gearpatrol.feed com.coolmaterial.steals.feed; do
+            # Keep in sync with Makefile CONNECTORS
+            for id in com.polygon.feed com.uncrate.feed com.gearpatrol.feed com.coolmaterial.steals.feed com.newtosh.youtube.playlist; do
               semver=$(python3 -c "import json; print(json.load(open(\"Source/$id/version.json\"))['semver'])")
               tapestry_version=$(python3 -c "import json; print(json.load(open(\"Source/$id/version.json\"))['tapestry_version'])")
               echo "- **${id}** v${semver} (Tapestry version ${tapestry_version})"
@@ -62,6 +63,6 @@ jobs:
           name: ${{ github.event.inputs.tag || github.ref_name }}
           body_path: release-notes.md
           files: |
-            Downloads/com.*.feed-v*.tapestry
+            Downloads/com.*-v*.tapestry
           draft: false
           prerelease: false
