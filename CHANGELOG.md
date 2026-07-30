@@ -4,6 +4,25 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.polygon.feed 0.1.11] - 2026-07-30
+
+### Fixed
+
+- Revert article layout: restore post layout with the curated dark Polygon icon (article style falls back to the transparent site favicon).
+- Show a single writer byline below the title via annotation (`by Writer`), not a duplicate synthetic site byline.
+
+## [com.gearpatrol.feed 0.1.6] - 2026-07-30
+
+### Fixed
+
+- Revert article layout; restore post layout with branded icon and a single writer byline annotation below the title.
+
+## [com.coolmaterial.steals.feed 0.2.8] - 2026-07-30
+
+### Fixed
+
+- Revert article layout; restore post layout with branded icon and a single writer byline annotation below the title.
+
 ## [com.polygon.feed 0.1.10] - 2026-07-30
 
 ### Fixed

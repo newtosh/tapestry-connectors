@@ -23,15 +23,6 @@ function createFeedIdentity() {
 	return identity;
 }
 
-function createAuthorIdentity(authorName) {
-	if (authorName == null || authorName.length === 0) {
-		return null;
-	}
-	const identity = Identity.createWithName(authorName);
-	identity.uri = POLYGON_BASE_URL;
-	return identity;
-}
-
 async function verify() {
 	processVerification({
 		displayName: "Polygon",
@@ -102,9 +93,9 @@ async function load() {
 			if (content != null) {
 				resultItem.body = fixInlineTagSpacing(content);
 			}
-			const author = createAuthorIdentity(authorName);
-			if (author != null) {
-				resultItem.author = author;
+			resultItem.author = createFeedIdentity();
+			if (authorName != null && authorName.length > 0) {
+				resultItem.annotations = [Annotation.createWithText(`by ${authorName}`)];
 			}
 
 			const attachments = [];
