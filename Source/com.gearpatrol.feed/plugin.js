@@ -288,28 +288,11 @@ function formatCategory(category) {
 }
 
 function prependByline(content, authorName) {
-	const byline = `<p>${bylineImageMarkup(`by ${String(authorName).trim()}`)}</p>`;
+	const byline = `<p>by ${escapeHtml(authorName)}</p>`;
 	if (content == null || content.length === 0) {
 		return byline;
 	}
 	return `${byline}\n${content}`;
-}
-
-function bylineImageMarkup(label) {
-	const width = Math.min(520, Math.max(72, Math.ceil(label.length * 7.2) + 8));
-	const height = 18;
-	const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><text x="0" y="13" font-family="-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="12" fill="#9A9A9A">${escapeXml(label)}</text></svg>`;
-	const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-	return `<img src="${src}" alt="${escapeHtml(label)}" width="${width}" height="${height}"/>`;
-}
-
-function escapeXml(text) {
-	return String(text)
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&apos;");
 }
 
 function escapeHtml(text) {

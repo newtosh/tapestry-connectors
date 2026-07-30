@@ -4,6 +4,24 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.polygon.feed 0.1.17] - 2026-07-30
+
+### Fixed
+
+- Restore plain-text body bylines. Data-URI SVG byline images were dropped entirely by the timeline preview.
+
+## [com.gearpatrol.feed 0.1.13] - 2026-07-30
+
+### Fixed
+
+- Restore plain-text body bylines after data-URI SVG images were dropped by the timeline preview.
+
+## [com.coolmaterial.steals.feed 0.2.15] - 2026-07-30
+
+### Fixed
+
+- Restore plain-text body bylines after data-URI SVG images were dropped by the timeline preview.
+
 ## [com.polygon.feed 0.1.16] - 2026-07-30
 
 ### Fixed
