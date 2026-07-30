@@ -16,10 +16,13 @@ function loadIconUrl() {
 	return iconUrl;
 }
 
-function createFeedIdentity() {
-	const identity = Identity.createWithName("Polygon");
+function createAuthorIdentity(authorName) {
+	if (authorName == null || authorName.length === 0) {
+		return null;
+	}
+	// Article layout renders Identity.name as the native smaller "by …" byline.
+	const identity = Identity.createWithName(authorName);
 	identity.uri = POLYGON_BASE_URL;
-	identity.avatar = POLYGON_ICON;
 	return identity;
 }
 
@@ -27,8 +30,7 @@ async function verify() {
 	processVerification({
 		displayName: "Polygon",
 		icon: POLYGON_ICON,
-		baseUrl: POLYGON_BASE_URL,
-		accountIdentity: createFeedIdentity()
+		baseUrl: POLYGON_BASE_URL
 	});
 }
 
@@ -86,10 +88,6 @@ async function load() {
 				}
 			}
 
-			if (authorName != null && authorName.length > 0) {
-				content = prependByline(content, authorName);
-			}
-
 			const resultItem = Item.createWithUriDate(url, date);
 			if (title != null) {
 				resultItem.title = title;
@@ -97,7 +95,10 @@ async function load() {
 			if (content != null) {
 				resultItem.body = fixInlineTagSpacing(content);
 			}
-			resultItem.author = createFeedIdentity();
+			const author = createAuthorIdentity(authorName);
+			if (author != null) {
+				resultItem.author = author;
+			}
 
 			const attachments = [];
 
@@ -135,23 +136,6 @@ async function load() {
 	} else {
 		processResults([]);
 	}
-}
-
-function prependByline(content, authorName) {
-	// Leading/trailing <br> approximate Verge article spacing around the byline.
-	const byline = `<p><br>by ${escapeHtml(authorName)}<br></p>`;
-	if (content == null || content.length === 0) {
-		return byline;
-	}
-	return `${byline}\n${content}`;
-}
-
-function escapeHtml(text) {
-	return String(text)
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;");
 }
 
 function fixInlineTagSpacing(bodyHtml) {

@@ -4,6 +4,24 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.polygon.feed 0.1.13] - 2026-07-30
+
+### Fixed
+
+- Use article layout with the RSS writer as `item.author` so Tapestry renders the native smaller byline (body HTML cannot change timeline font size). Dropped `accountIdentity` to avoid a duplicate site byline.
+
+## [com.gearpatrol.feed 0.1.9] - 2026-07-30
+
+### Fixed
+
+- Use article layout with the RSS writer as `item.author` for the native smaller byline.
+
+## [com.coolmaterial.steals.feed 0.2.11] - 2026-07-30
+
+### Fixed
+
+- Use article layout with the RSS writer as `item.author` for the native smaller byline on editorial posts.
+
 ## [com.polygon.feed 0.1.12] - 2026-07-30
 
 ### Fixed

@@ -40,10 +40,12 @@ function loadIconUrl() {
 	return iconUrl;
 }
 
-function createFeedIdentity() {
-	const identity = Identity.createWithName("Cool Material");
+function createAuthorIdentity(authorName) {
+	if (authorName == null || authorName.length === 0 || authorName === "Cool Material") {
+		return null;
+	}
+	const identity = Identity.createWithName(authorName);
 	identity.uri = COOL_MATERIAL_BASE_URL;
-	identity.avatar = COOL_MATERIAL_ICON;
 	return identity;
 }
 
@@ -55,8 +57,7 @@ async function verify() {
 		processVerification({
 			displayName: "Cool Material",
 			icon: COOL_MATERIAL_ICON,
-			baseUrl: COOL_MATERIAL_BASE_URL,
-			accountIdentity: createFeedIdentity()
+			baseUrl: COOL_MATERIAL_BASE_URL
 		});
 	}
 }
@@ -191,7 +192,6 @@ function buildStealItem(feedItem) {
 	if (content != null && content.length > 0) {
 		resultItem.body = content;
 	}
-	resultItem.author = createFeedIdentity();
 	resultItem.annotations = [Annotation.createWithText("Steals")];
 
 	const attachments = [];
@@ -249,10 +249,6 @@ async function buildEditorialItem(feedItem) {
 	}
 
 	const authorName = formatAuthorName(item["dc:creator"]);
-	if (authorName != null && authorName.length > 0 && authorName !== "Cool Material") {
-		content = prependByline(content, authorName);
-	}
-
 	const resultItem = Item.createWithUriDate(url, feedItem.date);
 	if (title != null) {
 		resultItem.title = title;
@@ -260,7 +256,10 @@ async function buildEditorialItem(feedItem) {
 	if (content != null && content.length > 0) {
 		resultItem.body = content;
 	}
-	resultItem.author = createFeedIdentity();
+	const author = createAuthorIdentity(authorName);
+	if (author != null) {
+		resultItem.author = author;
+	}
 
 	const category = pickEditorialCategory(item.category);
 	if (category != null) {
@@ -1099,14 +1098,6 @@ function attachmentUrlFromMedia(mediaAttributes) {
 		return mediaAttributes.url;
 	}
 	return null;
-}
-
-function prependByline(content, authorName) {
-	const byline = `<p><br>by ${escapeHtml(authorName)}<br></p>`;
-	if (content == null || content.length === 0) {
-		return byline;
-	}
-	return `${byline}\n${content}`;
 }
 
 function escapeHtml(text) {
