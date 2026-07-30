@@ -16,13 +16,10 @@ function loadIconUrl() {
 	return iconUrl;
 }
 
-function createFeedIdentity(authorName = null) {
+function createFeedIdentity() {
 	const identity = Identity.createWithName("Polygon");
 	identity.uri = POLYGON_BASE_URL;
 	identity.avatar = POLYGON_ICON;
-	if (authorName != null && authorName.length > 0) {
-		identity.username = `by ${authorName}`;
-	}
 	return identity;
 }
 
@@ -89,6 +86,10 @@ async function load() {
 				}
 			}
 
+			if (authorName != null && authorName.length > 0) {
+				content = prependByline(content, authorName);
+			}
+
 			const resultItem = Item.createWithUriDate(url, date);
 			if (title != null) {
 				resultItem.title = title;
@@ -96,7 +97,7 @@ async function load() {
 			if (content != null) {
 				resultItem.body = fixInlineTagSpacing(content);
 			}
-			resultItem.author = createFeedIdentity(authorName);
+			resultItem.author = createFeedIdentity();
 
 			const attachments = [];
 
@@ -134,6 +135,22 @@ async function load() {
 	} else {
 		processResults([]);
 	}
+}
+
+function prependByline(content, authorName) {
+	const byline = `<p>by ${escapeHtml(authorName)}</p>`;
+	if (content == null || content.length === 0) {
+		return byline;
+	}
+	return `${byline}\n${content}`;
+}
+
+function escapeHtml(text) {
+	return String(text)
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;");
 }
 
 function fixInlineTagSpacing(bodyHtml) {

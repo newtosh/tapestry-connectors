@@ -15,13 +15,10 @@ function loadIconUrl() {
 	return iconUrl;
 }
 
-function createFeedIdentity(authorName = null) {
+function createFeedIdentity() {
 	const identity = Identity.createWithName("Gear Patrol");
 	identity.uri = GEAR_PATROL_BASE_URL;
 	identity.avatar = GEAR_PATROL_ICON;
-	if (authorName != null && authorName.length > 0) {
-		identity.username = `by ${authorName}`;
-	}
 	return identity;
 }
 
@@ -93,6 +90,10 @@ async function load() {
 				}
 			}
 
+			if (authorName != null && authorName.length > 0) {
+				content = prependByline(content, authorName);
+			}
+
 			const resultItem = Item.createWithUriDate(url, date);
 			if (title != null) {
 				resultItem.title = title;
@@ -100,7 +101,7 @@ async function load() {
 			if (content != null && content.length > 0) {
 				resultItem.body = content;
 			}
-			resultItem.author = createFeedIdentity(authorName);
+			resultItem.author = createFeedIdentity();
 
 			const category = formatCategory(item.category);
 			if (category != null) {
@@ -284,6 +285,14 @@ function formatCategory(category) {
 	}
 	const text = String(category).trim();
 	return text.length > 0 ? text : null;
+}
+
+function prependByline(content, authorName) {
+	const byline = `<p>by ${escapeHtml(authorName)}</p>`;
+	if (content == null || content.length === 0) {
+		return byline;
+	}
+	return `${byline}\n${content}`;
 }
 
 function escapeHtml(text) {
