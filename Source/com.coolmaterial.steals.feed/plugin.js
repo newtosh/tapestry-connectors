@@ -40,13 +40,10 @@ function loadIconUrl() {
 	return iconUrl;
 }
 
-function createFeedIdentity(authorName = null) {
+function createFeedIdentity() {
 	const identity = Identity.createWithName("Cool Material");
 	identity.uri = COOL_MATERIAL_BASE_URL;
 	identity.avatar = COOL_MATERIAL_ICON;
-	if (authorName != null && authorName.length > 0 && authorName !== "Cool Material") {
-		identity.username = `by ${authorName}`;
-	}
 	return identity;
 }
 
@@ -188,6 +185,10 @@ function buildStealItem(feedItem) {
 	}
 
 	let authorName = formatAuthorName(item["dc:creator"]);
+	if (authorName != null && authorName.length > 0 && authorName !== "Cool Material") {
+		content = prependByline(content, authorName);
+	}
+
 	const resultItem = Item.createWithUriDate(url, feedItem.date);
 	if (title != null) {
 		resultItem.title = title;
@@ -195,7 +196,7 @@ function buildStealItem(feedItem) {
 	if (content != null && content.length > 0) {
 		resultItem.body = content;
 	}
-	resultItem.author = createFeedIdentity(authorName);
+	resultItem.author = createFeedIdentity();
 	resultItem.annotations = [Annotation.createWithText("Steals")];
 
 	const attachments = [];
@@ -253,6 +254,10 @@ async function buildEditorialItem(feedItem) {
 	}
 
 	let authorName = formatAuthorName(item["dc:creator"]);
+	if (authorName != null && authorName.length > 0 && authorName !== "Cool Material") {
+		content = prependByline(content, authorName);
+	}
+
 	const resultItem = Item.createWithUriDate(url, feedItem.date);
 	if (title != null) {
 		resultItem.title = title;
@@ -260,7 +265,7 @@ async function buildEditorialItem(feedItem) {
 	if (content != null && content.length > 0) {
 		resultItem.body = content;
 	}
-	resultItem.author = createFeedIdentity(authorName);
+	resultItem.author = createFeedIdentity();
 
 	const category = pickEditorialCategory(item.category);
 	if (category != null) {
@@ -1099,6 +1104,14 @@ function attachmentUrlFromMedia(mediaAttributes) {
 		return mediaAttributes.url;
 	}
 	return null;
+}
+
+function prependByline(content, authorName) {
+	const byline = `<p>by ${escapeHtml(authorName)}</p>`;
+	if (content == null || content.length === 0) {
+		return byline;
+	}
+	return `${byline}\n${content}`;
 }
 
 function escapeHtml(text) {

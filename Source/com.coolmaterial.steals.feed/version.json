@@ -1,6 +1,6 @@
 {
-  "semver": "0.2.5",
-  "tapestry_version": 7,
+  "semver": "0.2.6",
+  "tapestry_version": 8,
   "icon_url": "https://raw.githubusercontent.com/newtosh/tapestry-connectors/refs/heads/main/Source/com.coolmaterial.steals.feed/icon.png",
   "icon_text": "CM",
   "icon_text_scale": 0.52
