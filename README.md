@@ -8,10 +8,10 @@ Inspired by [chockenberry/TapestryConnectors](https://github.com/chockenberry/Ta
 
 | Connector | Version | Description |
 |-----------|---------|-------------|
-| [Polygon](Source/com.polygon.feed/) | 0.1.9 | Optimized Polygon.com RSS — dark icon, deduped intro, post layout |
+| [Polygon](Source/com.polygon.feed/) | 0.1.10 | Optimized Polygon.com RSS — branded icon, deduped intro, native bylines |
 | [Uncrate](Source/com.uncrate.feed/) | 0.1.3 | Optimized Uncrate RSS — summaries, purchase links, hero images |
-| [Gear Patrol](Source/com.gearpatrol.feed/) | 0.1.4 | Gear Patrol RSS — summaries, retailer buy links, hero images |
-| [Cool Material](Source/com.coolmaterial.steals.feed/) | 0.2.6 | Editorial + steals — summaries, hero images, buy links, deal prices |
+| [Gear Patrol](Source/com.gearpatrol.feed/) | 0.1.5 | Gear Patrol RSS — summaries, retailer buy links, hero images |
+| [Cool Material](Source/com.coolmaterial.steals.feed/) | 0.2.7 | Editorial + steals — summaries, hero images, buy links, deal prices |
 
 ## Install on iOS
 

@@ -22,6 +22,15 @@ function createFeedIdentity() {
 	return identity;
 }
 
+function createAuthorIdentity(authorName) {
+	if (authorName == null || authorName.length === 0) {
+		return null;
+	}
+	const identity = Identity.createWithName(authorName);
+	identity.uri = GEAR_PATROL_BASE_URL;
+	return identity;
+}
+
 async function verify() {
 	const response = await sendRequest(site, "GET", null, {"user-agent": userAgent});
 	const jsonObject = await xmlParse(response);
@@ -90,10 +99,6 @@ async function load() {
 				}
 			}
 
-			if (authorName != null && authorName.length > 0) {
-				content = prependByline(content, authorName);
-			}
-
 			const resultItem = Item.createWithUriDate(url, date);
 			if (title != null) {
 				resultItem.title = title;
@@ -101,7 +106,10 @@ async function load() {
 			if (content != null && content.length > 0) {
 				resultItem.body = content;
 			}
-			resultItem.author = createFeedIdentity();
+			const author = createAuthorIdentity(authorName);
+			if (author != null) {
+				resultItem.author = author;
+			}
 
 			const category = formatCategory(item.category);
 			if (category != null) {
@@ -285,14 +293,6 @@ function formatCategory(category) {
 	}
 	const text = String(category).trim();
 	return text.length > 0 ? text : null;
-}
-
-function prependByline(content, authorName) {
-	const byline = `<p>by ${escapeHtml(authorName)}</p>`;
-	if (content == null || content.length === 0) {
-		return byline;
-	}
-	return `${byline}\n${content}`;
 }
 
 function escapeHtml(text) {

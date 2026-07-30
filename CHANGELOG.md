@@ -4,6 +4,24 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.polygon.feed 0.1.10] - 2026-07-30
+
+### Fixed
+
+- Use article layout with the RSS writer as `author` so bylines get native Verge-style spacing and smaller type (body paragraphs cannot match that typography).
+
+## [com.gearpatrol.feed 0.1.5] - 2026-07-30
+
+### Fixed
+
+- Use article layout with the RSS writer as `author` for native byline spacing and size.
+
+## [com.coolmaterial.steals.feed 0.2.7] - 2026-07-30
+
+### Fixed
+
+- Use article layout with the RSS writer as `author` for native byline spacing and size.
+
 ## [com.polygon.feed 0.1.9] - 2026-07-30
 
 ### Fixed
