@@ -4,6 +4,18 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.newtosh.youtube.playlist 0.1.1] - 2026-07-30
+
+### Fixed
+
+- Show the channel avatar on each post (feed identity with cached avatar), not the generic person placeholder.
+- Return the full playlist Atom entry set: harden array parsing and fall back to raw `<entry>` extraction when `xmlParse` collapses repeats.
+- Remove the redundant `youtube-nocookie.com` link-preview card under the thumbnail; timeline uses the thumbnail only, playback stays in the detail embed.
+
+### Added
+
+- **Video Description** setting: Short (default), Full, or Off.
+
 ## [com.newtosh.youtube.playlist 0.1.0] - 2026-07-30
 
 ### Added
