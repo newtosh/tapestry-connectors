@@ -12,6 +12,7 @@ Inspired by [chockenberry/TapestryConnectors](https://github.com/chockenberry/Ta
 | [Uncrate](Source/com.uncrate.feed/) | 0.1.3 | Optimized Uncrate RSS — summaries, purchase links, hero images |
 | [Gear Patrol](Source/com.gearpatrol.feed/) | 0.1.13 | Gear Patrol RSS — summaries, retailer buy links, hero images |
 | [Cool Material](Source/com.coolmaterial.steals.feed/) | 0.2.15 | Editorial + steals — summaries, hero images, buy links, deal prices |
+| [YouTube Playlist](Source/com.youtube.playlist/) | 0.1.0 | Playlist/channel feeds — in-app privacy-enhanced embeds, stays out of the YouTube app |
 
 ## Install on iOS
 

@@ -1,0 +1,16 @@
+{
+	"inputs": [
+		{
+			"name": "privacyEnhanced",
+			"type": "switch",
+			"prompt": "Privacy Enhanced Embed",
+			"value": "on"
+		},
+		{
+			"name": "includeDescription",
+			"type": "switch",
+			"prompt": "Include Video Description",
+			"value": "on"
+		}
+	]
+}

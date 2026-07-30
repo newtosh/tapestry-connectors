@@ -1,0 +1,33 @@
+{
+	"sites": [
+		"youtube.",
+		"youtu.be",
+		"youtubekids.com"
+	],
+	"html": [
+		{
+			"element": "link",
+			"check": "rel",
+			"match": "canonical",
+			"use": "href",
+			"variable": "site"
+		},
+		{
+			"element": "meta",
+			"check": "property",
+			"match": "og:url",
+			"use": "content",
+			"variable": "site"
+		}
+	],
+	"xml": [
+		{
+			"root": "feed",
+			"with": "yt:playlistId"
+		},
+		{
+			"root": "feed",
+			"with": "yt:channelId"
+		}
+	]
+}
