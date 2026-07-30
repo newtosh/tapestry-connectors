@@ -11,7 +11,7 @@ Inspired by [chockenberry/TapestryConnectors](https://github.com/chockenberry/Ta
 | [Polygon](Source/com.polygon.feed/) | 0.1.8 | Optimized Polygon.com RSS — dark icon, deduped intro, post layout |
 | [Uncrate](Source/com.uncrate.feed/) | 0.1.3 | Optimized Uncrate RSS — summaries, purchase links, hero images |
 | [Gear Patrol](Source/com.gearpatrol.feed/) | 0.1.3 | Gear Patrol RSS — summaries, retailer buy links, hero images |
-| [Cool Material Steals](Source/com.coolmaterial.steals.feed/) | 0.2.0 | Cool Material editorial + steals — summaries, buy links, deal prices |
+| [Cool Material](Source/com.coolmaterial.steals.feed/) | 0.2.5 | Editorial + steals — summaries, hero images, buy links, deal prices |
 
 ## Install on iOS
 

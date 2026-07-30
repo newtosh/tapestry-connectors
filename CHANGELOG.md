@@ -4,6 +4,41 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.coolmaterial.steals.feed 0.2.5] - 2026-07-30
+
+### Fixed
+
+- Fix WordPress image URL normalization: size-suffix stripping used the height capture group instead of the file extension, producing broken URLs like `…/1-13394` instead of `…/1-13.png`.
+- Reject image candidates that lack a valid file extension.
+
+### Added
+
+- Image search fallback (Brave/Bing) for editorial posts when Cloudflare blocks direct page fetches; ranks candidates by upload date folder and article relevance.
+- Editorial enrichment fallbacks when article pages return 403: DuckDuckGo HTML snippets for body text, multi-user-agent retries, JSON-LD parsing.
+
+### Changed
+
+- Merged Cool Material editorial feed (`/feed/`) with steals feed (`/steals/feed/`) in one connector.
+- Steal items use RSS-only parsing; junk Walmart nav links filtered from purchase-link extraction.
+
+## [com.coolmaterial.steals.feed 0.2.2] - 2026-07-29
+
+### Fixed
+
+- Editorial feed disappearing after connector upgrade: fallback when conditional GET returns empty; correct steal-item detection in main loop.
+
+## [com.coolmaterial.steals.feed 0.2.1] - 2026-07-29
+
+### Fixed
+
+- Steal vs editorial detection; trim junk purchase links from steal post bodies.
+
+## [com.coolmaterial.steals.feed 0.2.0] - 2026-07-29
+
+### Added
+
+- Cool Material connector merging editorial features/partner posts with steals deals.
+
 ## [com.uncrate.feed 0.1.0] - 2026-07-29
 
 ### Added
