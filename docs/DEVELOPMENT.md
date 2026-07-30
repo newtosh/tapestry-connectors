@@ -78,7 +78,7 @@ Bump both when shipping a new release. See [CHANGELOG.md](../CHANGELOG.md).
 |------|---------|
 | Force push | Blocked |
 | Branch deletion | Blocked |
-| Required status check | `CI / build` must pass before merging PRs |
+| Required status check | `build` (CI workflow) must pass before merging PRs |
 | Admin override | Enabled (`enforce_admins: false`) — repo admins can bypass when needed |
 
 Direct pushes to `main` remain allowed for maintainers; PRs require green CI. Admins can bypass protection for hotfixes or release tags.
