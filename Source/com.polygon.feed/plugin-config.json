@@ -4,11 +4,11 @@
   "default_service_name_visibility": "hidden",
   "default_color": "slate",
   "item_style": "post",
-  "icon": "https://raw.githubusercontent.com/newtosh/tapestry-connectors/refs/heads/main/Source/com.polygon.feed/icon.png?v=16",
+  "icon": "https://raw.githubusercontent.com/newtosh/tapestry-connectors/refs/heads/main/Source/com.polygon.feed/icon.png?v=17",
   "site": "https://www.polygon.com/rss/index.xml",
   "needs_verification": true,
   "provides_attachments": true,
   "minimum_app_version": "1.3",
-  "version": 16,
-  "semver": "0.1.15"
+  "version": 17,
+  "semver": "0.1.16"
 }

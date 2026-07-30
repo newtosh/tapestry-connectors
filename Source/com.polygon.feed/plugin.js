@@ -140,13 +140,31 @@ async function load() {
 }
 
 function prependByline(content, authorName) {
-	// Keep byline below the title (body) while post layout keeps the branded icon.
-	// <small> is best-effort — timeline preview may ignore it; position/icon stay correct.
-	const byline = `<p><small>by ${escapeHtml(authorName)}</small></p>`;
+	// Post layout needs body placement for below-title bylines (annotations sit above
+	// the feed name). Timeline preview ignores <small>/CSS, so render a compact SVG
+	// image to approximate native RSS byline size while keeping the branded icon.
+	const byline = `<p>${bylineImageMarkup(`by ${String(authorName).trim()}`)}</p>`;
 	if (content == null || content.length === 0) {
 		return byline;
 	}
 	return `${byline}\n${content}`;
+}
+
+function bylineImageMarkup(label) {
+	const width = Math.min(520, Math.max(72, Math.ceil(label.length * 7.2) + 8));
+	const height = 18;
+	const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><text x="0" y="13" font-family="-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="12" fill="#9A9A9A">${escapeXml(label)}</text></svg>`;
+	const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+	return `<img src="${src}" alt="${escapeHtml(label)}" width="${width}" height="${height}"/>`;
+}
+
+function escapeXml(text) {
+	return String(text)
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&apos;");
 }
 
 function escapeHtml(text) {

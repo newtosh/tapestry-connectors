@@ -4,6 +4,24 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.polygon.feed 0.1.16] - 2026-07-30
+
+### Fixed
+
+- Render writer bylines as compact SVG images in the body so they stay below the title and read smaller than paragraph text, without switching to article layout (which breaks the dark branded icon).
+
+## [com.gearpatrol.feed 0.1.12] - 2026-07-30
+
+### Fixed
+
+- Same compact SVG byline treatment for smaller below-title bylines with branded post-layout icons.
+
+## [com.coolmaterial.steals.feed 0.2.14] - 2026-07-30
+
+### Fixed
+
+- Same compact SVG byline treatment for editorial posts.
+
 ## [com.polygon.feed 0.1.15] - 2026-07-30
 
 ### Fixed
