@@ -7,6 +7,11 @@ const COOL_MATERIAL_BASE_URL = "https://coolmaterial.com";
 const COOL_MATERIAL_STEALS_FEED = "https://coolmaterial.com/steals/feed/";
 
 const userAgent = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_3; de-de) AppleWebKit/531.22.7 (KHTML, like Gecko) NetNewsWire/3.2.7 Tapestry/1.3";
+const ARTICLE_FETCH_USER_AGENTS = [
+	userAgent,
+	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
+	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+];
 
 const SKIP_CATEGORIES = new Set([
 	"Features",
@@ -157,7 +162,7 @@ function isAffiliateLink(url) {
 }
 
 function isEditorialArticleUrl(url) {
-	return /^https:\/\/coolmaterial\.com\/(feature|partner|gear|lifestyle|tech|fashion|watches|drinks|food|travel|outdoors|guides|steal-roundups)\//i.test(url);
+	return /^https:\/\/coolmaterial\.com\/(feature|partner|gear|lifestyle|tech|fashion|watches|drinks|food|travel|outdoors|guides|steal-roundups|misc|shopping)\//i.test(url);
 }
 
 function buildStealItem(feedItem) {
@@ -234,7 +239,9 @@ async function buildEditorialItem(feedItem) {
 
 	const enrichment = await enrichFromArticlePage(url);
 	if (enrichment != null) {
-		if (enrichment.summary != null && enrichment.summary.length > 0) {
+		if (enrichment.bodyHtml != null && enrichment.bodyHtml.length > 0) {
+			content = enrichment.bodyHtml;
+		} else if (enrichment.summary != null && enrichment.summary.length > 0) {
 			content = `<p>${escapeHtml(enrichment.summary.trim())}</p>`;
 		}
 		if (heroImageUrl == null && enrichment.imageUrl != null) {
@@ -279,24 +286,115 @@ async function enrichFromArticlePage(url) {
 		return null;
 	}
 
+	let summary = null;
+	let bodyHtml = null;
+	let imageUrl = null;
+	let purchaseLinks = null;
+
+	const html = await fetchArticleHtml(url);
+	if (html != null) {
+		summary = extractArticleSummary(html);
+		bodyHtml = extractArticleBodyHtml(html);
+		imageUrl = extractFeaturedImageUrl(html);
+		purchaseLinks = extractPurchaseLinkEntries(html);
+	}
+
+	if ((summary == null || summary.length === 0) && bodyHtml == null) {
+		const searchSnippet = await fetchSearchSnippetForUrl(url);
+		if (searchSnippet != null && searchSnippet.length > 0) {
+			summary = searchSnippet;
+		}
+	}
+
+	if (summary == null && bodyHtml == null && imageUrl == null && purchaseLinks == null) {
+		return null;
+	}
+
+	return {summary, bodyHtml, imageUrl, purchaseLinks};
+}
+
+async function fetchArticleHtml(url) {
+	const requestHeaders = {
+		"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+		"Accept-Language": "en-US,en;q=0.9"
+	};
+
+	for (const articleUserAgent of ARTICLE_FETCH_USER_AGENTS) {
+		try {
+			const html = await sendRequest(url, "GET", null, {
+				"user-agent": articleUserAgent,
+				"Accept": requestHeaders["Accept"],
+				"Accept-Language": requestHeaders["Accept-Language"]
+			});
+			if (html != null && html.length > 0 && !isCloudflareChallenge(html)) {
+				return html;
+			}
+		} catch (error) {
+			continue;
+		}
+	}
+
+	return null;
+}
+
+async function fetchSearchSnippetForUrl(url) {
 	try {
-		const html = await sendRequest(url, "GET", null, {"user-agent": userAgent});
-		if (html == null || html.length === 0 || isCloudflareChallenge(html)) {
+		const urlPath = extractCoolMaterialPath(url);
+		if (urlPath == null) {
 			return null;
 		}
 
-		const summary = extractArticleSummary(html);
-		const imageUrl = extractFeaturedImageUrl(html);
-		const purchaseLinks = extractPurchaseLinkEntries(html);
-
-		if (summary == null && imageUrl == null && purchaseLinks == null) {
+		const searchQuery = `site:coolmaterial.com${urlPath}`;
+		const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`;
+		const html = await sendRequest(searchUrl, "GET", null, {
+			"user-agent": userAgent,
+			"Accept": "text/html"
+		});
+		if (html == null || html.length === 0) {
 			return null;
 		}
 
-		return {summary, imageUrl, purchaseLinks};
+		return extractSearchSnippetForPath(html, urlPath);
 	} catch (error) {
 		return null;
 	}
+}
+
+function extractCoolMaterialPath(url) {
+	const match = url.match(/^https:\/\/coolmaterial\.com(\/[^?#]*)/i);
+	return match != null ? match[1] : null;
+}
+
+function extractSearchSnippetForPath(html, urlPath) {
+	const normalizedPath = urlPath.replace(/\/$/, "");
+	const blocks = html.split("result__body");
+	for (const block of blocks) {
+		if (!block.includes(normalizedPath)) {
+			continue;
+		}
+
+		const snippetMatch = block.match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/i);
+		if (snippetMatch == null) {
+			continue;
+		}
+
+		const text = cleanSearchSnippet(snippetMatch[1]);
+		if (text.length > 0) {
+			return text;
+		}
+	}
+
+	return null;
+}
+
+function cleanSearchSnippet(snippetHtml) {
+	return decodeHtmlEntities(
+		snippetHtml
+			.replace(/<\/?b>/gi, "")
+			.replace(/<[^>]+>/g, " ")
+			.replace(/\s+/g, " ")
+			.trim()
+	);
 }
 
 function isCloudflareChallenge(html) {
@@ -304,11 +402,24 @@ function isCloudflareChallenge(html) {
 }
 
 function extractArticleSummary(html) {
-	const dekMatch = html.match(/class="[^"]*(?:shortform-article__dek|article__dek|c-dek)[^"]*"[^>]*>([\s\S]*?)<\/(?:p|div)>/i);
-	if (dekMatch != null) {
-		const text = decodeHtmlEntities(dekMatch[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
-		if (text.length > 0) {
-			return text;
+	const jsonLdSummary = extractJsonLdArticleField(html, "description");
+	if (jsonLdSummary != null && jsonLdSummary.length > 0) {
+		return jsonLdSummary;
+	}
+
+	const dekPatterns = [
+		/class="[^"]*shortform-article__dek[^"]*"[^>]*>([\s\S]*?)<\/(?:p|div)>/i,
+		/class="[^"]*article__dek[^"]*"[^>]*>([\s\S]*?)<\/(?:p|div)>/i,
+		/class="[^"]*c-dek[^"]*"[^>]*>([\s\S]*?)<\/(?:p|div)>/i
+	];
+
+	for (const pattern of dekPatterns) {
+		const dekMatch = html.match(pattern);
+		if (dekMatch != null) {
+			const text = decodeHtmlEntities(dekMatch[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+			if (text.length > 0) {
+				return text;
+			}
 		}
 	}
 
@@ -317,7 +428,126 @@ function extractArticleSummary(html) {
 		?? extractMetaName(html, "description");
 }
 
+function extractArticleBodyHtml(html) {
+	const contentMatch = html.match(/<div[^>]*class="[^"]*c-shortform-article__content[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/i);
+	if (contentMatch == null) {
+		return null;
+	}
+
+	let scope = contentMatch[1];
+	scope = scope.replace(/<div[^>]*class="[^"]*c-product-lists__card[^"]*"[^>]*>[\s\S]*?<\/div>\s*<\/div>/gi, "");
+	scope = scope.replace(/<style[\s\S]*?<\/style>/gi, "");
+	scope = scope.replace(/<script[\s\S]*?<\/script>/gi, "");
+
+	const paragraphs = [];
+	const paragraphRegex = /<p[^>]*>([\s\S]*?)<\/p>/gi;
+	let paragraphMatch = paragraphRegex.exec(scope);
+	while (paragraphMatch != null) {
+		const text = decodeHtmlEntities(paragraphMatch[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+		if (text.length > 30 && !isBoilerplateParagraph(text)) {
+			paragraphs.push(`<p>${escapeHtml(text)}</p>`);
+		}
+		if (paragraphs.length >= 3) {
+			break;
+		}
+		paragraphMatch = paragraphRegex.exec(scope);
+	}
+
+	return paragraphs.length > 0 ? paragraphs.join("") : null;
+}
+
+function isBoilerplateParagraph(text) {
+	return /^(share article|subscribe|get the cool material newsletter|insider recommendations)/i.test(text);
+}
+
+function extractJsonLdArticleField(html, fieldName) {
+	for (const node of extractJsonLdNodes(html)) {
+		const nodeType = node["@type"];
+		const types = nodeType instanceof Array ? nodeType : [nodeType];
+		if (!types.some((type) => type === "Article" || type === "NewsArticle" || type === "WebPage" || type === "BlogPosting")) {
+			continue;
+		}
+
+		const value = node[fieldName];
+		if (typeof(value) === "string" && value.trim().length > 0) {
+			return decodeHtmlEntities(value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+		}
+	}
+
+	return null;
+}
+
+function extractJsonLdImageUrl(html) {
+	for (const node of extractJsonLdNodes(html)) {
+		const image = node.image;
+		const imageUrl = normalizeImageReference(image);
+		if (imageUrl != null) {
+			return imageUrl;
+		}
+	}
+
+	return null;
+}
+
+function extractJsonLdNodes(html) {
+	const nodes = [];
+	const jsonLdRegex = /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi;
+	let jsonLdMatch = jsonLdRegex.exec(html);
+	while (jsonLdMatch != null) {
+		try {
+			const data = JSON.parse(jsonLdMatch[1]);
+			if (data instanceof Array) {
+				nodes.push(...data);
+			} else if (data?.["@graph"] instanceof Array) {
+				nodes.push(...data["@graph"]);
+			} else if (data != null && typeof(data) === "object") {
+				nodes.push(data);
+			}
+		} catch (error) {
+			// Ignore malformed JSON-LD blocks.
+		}
+		jsonLdMatch = jsonLdRegex.exec(html);
+	}
+
+	return nodes;
+}
+
+function normalizeImageReference(image) {
+	if (image == null) {
+		return null;
+	}
+	if (typeof(image) === "string") {
+		return normalizeImageUrl(image);
+	}
+	if (image instanceof Array) {
+		for (const entry of image) {
+			const imageUrl = normalizeImageReference(entry);
+			if (imageUrl != null) {
+				return imageUrl;
+			}
+		}
+		return null;
+	}
+	if (typeof(image) === "object") {
+		return normalizeImageReference(image.url ?? image["@id"] ?? image.contentUrl);
+	}
+
+	return null;
+}
+
+function normalizeImageUrl(imageUrl) {
+	if (imageUrl == null || imageUrl.length === 0 || isPlaceholderImage(imageUrl)) {
+		return null;
+	}
+	return imageUrl.startsWith("http") ? imageUrl : `https:${imageUrl}`;
+}
+
 function extractFeaturedImageUrl(html) {
+	const jsonLdImage = extractJsonLdImageUrl(html);
+	if (jsonLdImage != null) {
+		return jsonLdImage;
+	}
+
 	const metaImage = extractMetaImageUrl(html);
 	if (metaImage != null && !isPlaceholderImage(metaImage)) {
 		return metaImage;
@@ -328,20 +558,51 @@ function extractFeaturedImageUrl(html) {
 		/<img[^>]*src="([^"]+)"[^>]*class="[^"]*wp-post-image[^"]*"/i,
 		/<div[^>]*class="[^"]*c-article-header[^"]*"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"/i,
 		/<figure[^>]*class="[^"]*wp-block-image[^"]*"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"/i,
-		/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i
+		/<img[^>]*class="[^"]*c-article-header[^"]*"[^>]*src="([^"]+)"/i,
+		/<img[^>]*srcset="([^"]+)"[^>]*class="[^"]*wp-post-image[^"]*"/i
 	];
 
 	for (const pattern of patterns) {
 		const match = html.match(pattern);
 		if (match != null) {
-			const imageUrl = decodeHtmlEntities(match[1]);
-			if (!isPlaceholderImage(imageUrl)) {
-				return imageUrl.startsWith("http") ? imageUrl : `https:${imageUrl}`;
+			const imageUrl = pickLargestSrcsetUrl(match[1]);
+			if (imageUrl != null && !isPlaceholderImage(imageUrl)) {
+				return normalizeImageUrl(imageUrl);
 			}
 		}
 	}
 
-	return metaImage;
+	const uploadsMatch = html.match(/https:\/\/coolmaterial\.com\/wp-content\/uploads\/[^"'\\s]+/i);
+	if (uploadsMatch != null) {
+		return normalizeImageUrl(uploadsMatch[0]);
+	}
+
+	return metaImage != null && !isPlaceholderImage(metaImage) ? metaImage : null;
+}
+
+function pickLargestSrcsetUrl(srcOrSrcset) {
+	if (srcOrSrcset == null || srcOrSrcset.length === 0) {
+		return null;
+	}
+	if (!srcOrSrcset.includes(",")) {
+		return decodeHtmlEntities(srcOrSrcset.trim());
+	}
+
+	let bestUrl = null;
+	let bestWidth = 0;
+	for (const candidate of srcOrSrcset.split(",")) {
+		const parts = candidate.trim().split(/\s+/);
+		if (parts.length === 0 || parts[0].length === 0) {
+			continue;
+		}
+		const width = parts.length > 1 ? Number.parseInt(parts[1], 10) : 0;
+		if (width >= bestWidth) {
+			bestWidth = width;
+			bestUrl = parts[0];
+		}
+	}
+
+	return bestUrl != null ? decodeHtmlEntities(bestUrl) : decodeHtmlEntities(srcOrSrcset.split(",")[0].trim());
 }
 
 function isPlaceholderImage(url) {
