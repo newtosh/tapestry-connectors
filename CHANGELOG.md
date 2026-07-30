@@ -4,6 +4,14 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.newtosh.youtube.playlist 0.1.2] - 2026-07-30
+
+### Fixed
+
+- **Video Description** setting now appears in Edit Feed (choices need a separate `choices` list; the list had been incorrectly stuffed into `value`).
+- Load all playlist videos by parsing Atom `<entry>` blocks directly from the feed XML.
+- Namespace item URIs with `list=` so playlist items are not collapsed against the same watch URLs from the built-in YouTube Channel connector.
+
 ## [com.newtosh.youtube.playlist 0.1.1] - 2026-07-30
 
 ### Fixed

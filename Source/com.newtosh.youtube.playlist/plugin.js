@@ -21,33 +21,6 @@ function loadIconUrl() {
 
 const CONNECTOR_ICON = loadIconUrl();
 
-function asArray(value) {
-	if (value == null) {
-		return [];
-	}
-	if (value instanceof Array || Array.isArray(value)) {
-		return Array.prototype.slice.call(value);
-	}
-	// Some JS bridges expose array-like objects instead of real Arrays.
-	if (typeof value === "object" && typeof value.length === "number" && value.length >= 0) {
-		const copy = [];
-		for (let i = 0; i < value.length; i++) {
-			copy.push(value[i]);
-		}
-		if (copy.length > 0) {
-			return copy;
-		}
-	}
-	// Numeric-key objects (e.g. {0: a, 1: b}).
-	if (typeof value === "object") {
-		const keys = Object.keys(value).filter((key) => /^\d+$/.test(key)).sort((a, b) => Number(a) - Number(b));
-		if (keys.length > 1) {
-			return keys.map((key) => value[key]);
-		}
-	}
-	return [value];
-}
-
 function decodeXmlEntities(text) {
 	if (text == null) {
 		return null;
@@ -149,12 +122,22 @@ async function resolveChannelId(url) {
 async function getFeedUrl() {
 	const cached = getItem("feedUrl");
 	if (cached != null && cached.length > 0) {
+		if (getItem("playlistId") == null || getItem("playlistId").length == 0) {
+			const cachedPlaylistId = extractPlaylistId(cached);
+			if (cachedPlaylistId != null) {
+				setItem("playlistId", cachedPlaylistId);
+			}
+		}
 		return cached;
 	}
 
 	const url = normalizeYouTubeUrl(site);
 
 	if (url.includes("/feeds/videos.xml")) {
+		const playlistId = extractPlaylistId(url);
+		if (playlistId != null) {
+			setItem("playlistId", playlistId);
+		}
 		setItem("feedUrl", url);
 		return url;
 	}
@@ -162,6 +145,7 @@ async function getFeedUrl() {
 	const playlistId = extractPlaylistId(url);
 	if (playlistId != null) {
 		const feedUrl = "https://www.youtube.com/feeds/videos.xml?playlist_id=" + playlistId;
+		setItem("playlistId", playlistId);
 		setItem("feedUrl", feedUrl);
 		setItem("feedKind", "playlist");
 		return feedUrl;
@@ -176,16 +160,13 @@ async function getFeedUrl() {
 
 function feedBaseUrl(jsonObject) {
 	const feedAttributes = jsonObject.feed.link$attrs;
-	if (feedAttributes instanceof Array || Array.isArray(feedAttributes)) {
-		for (const feedAttribute of asArray(feedAttributes)) {
-			if (feedAttribute.rel == "alternate") {
-				return feedAttribute.href;
-			}
+	const list = (feedAttributes instanceof Array || Array.isArray(feedAttributes))
+		? feedAttributes
+		: (feedAttributes != null ? [feedAttributes] : []);
+	for (const feedAttribute of list) {
+		if (feedAttribute != null && feedAttribute.rel == "alternate") {
+			return feedAttribute.href;
 		}
-		return null;
-	}
-	if (feedAttributes != null && feedAttributes.rel == "alternate") {
-		return feedAttributes.href;
 	}
 	return null;
 }
@@ -204,7 +185,7 @@ function extractAvatarFromHtml(html) {
 
 async function verify() {
 	const feedUrl = await getFeedUrl();
-	const xml = await sendRequest(feedUrl);
+	const xml = await sendRequest(feedUrl, "GET", null, extraHeaders);
 	const jsonObject = await xmlParse(xml);
 
 	if (jsonObject.feed == null) {
@@ -253,52 +234,8 @@ async function verify() {
 	});
 }
 
-function entryAlternateUrl(entry) {
-	const entryAttributes = entry.link$attrs;
-	if (entryAttributes instanceof Array || Array.isArray(entryAttributes)) {
-		for (const entryAttribute of asArray(entryAttributes)) {
-			if (entryAttribute.rel == "alternate") {
-				return entryAttribute.href;
-			}
-		}
-		return null;
-	}
-	if (entryAttributes != null && entryAttributes.rel == "alternate") {
-		return entryAttributes.href;
-	}
-	return null;
-}
-
-function entryVideoId(entry) {
-	if (entry["yt:videoId"] != null) {
-		return entry["yt:videoId"];
-	}
-	if (typeof entry.id === "string" && entry.id.indexOf("yt:video:") === 0) {
-		return entry.id.slice("yt:video:".length);
-	}
-	const url = entryAlternateUrl(entry);
-	if (url != null) {
-		const match = url.match(/[?&]v=([A-Za-z0-9_-]+)/);
-		if (match) {
-			return match[1];
-		}
-	}
-	return null;
-}
-
-function countVideoIdsInXml(xml) {
-	const matches = xml.match(/<yt:videoId>/g);
-	return matches == null ? 0 : matches.length;
-}
-
-function entriesFromParsedFeed(jsonObject) {
-	if (jsonObject.feed == null || jsonObject.feed.entry == null) {
-		return [];
-	}
-	return asArray(jsonObject.feed.entry);
-}
-
-// Fallback when xmlParse collapses repeated <entry> nodes to a single object.
+// Parse YouTube Atom entries directly from XML. More reliable than xmlParse for
+// repeated <entry> nodes in playlist feeds.
 function entriesFromAtomXml(xml) {
 	const entries = [];
 	const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
@@ -309,51 +246,35 @@ function entriesFromAtomXml(xml) {
 		if (videoIdMatch == null) {
 			continue;
 		}
+		const videoId = videoIdMatch[1];
 		const titleMatch = block.match(/<media:title>([\s\S]*?)<\/media:title>/) || block.match(/<title>([\s\S]*?)<\/title>/);
 		const publishedMatch = block.match(/<published>([^<]+)<\/published>/);
 		const descriptionMatch = block.match(/<media:description>([\s\S]*?)<\/media:description>/);
 		const thumbMatch = block.match(/<media:thumbnail\b[^>]*\burl="([^"]+)"/);
 		const widthMatch = block.match(/<media:thumbnail\b[^>]*\bwidth="([^"]+)"/);
 		const heightMatch = block.match(/<media:thumbnail\b[^>]*\bheight="([^"]+)"/);
-		const authorNameMatch = block.match(/<author>[\s\S]*?<name>([\s\S]*?)<\/name>/);
-		const authorUriMatch = block.match(/<author>[\s\S]*?<uri>([\s\S]*?)<\/uri>/);
-		const linkMatch = block.match(/<link\b[^>]*\brel="alternate"[^>]*\bhref="([^"]+)"/) ||
-			block.match(/<link\b[^>]*\bhref="([^"]+)"[^>]*\brel="alternate"/);
 
 		entries.push({
-			"yt:videoId": videoIdMatch[1],
-			id: "yt:video:" + videoIdMatch[1],
-			title: decodeXmlEntities(titleMatch ? titleMatch[1] : videoIdMatch[1]),
+			videoId: videoId,
+			title: decodeXmlEntities(titleMatch ? titleMatch[1] : videoId),
 			published: publishedMatch ? publishedMatch[1] : null,
-			link$attrs: {rel: "alternate", href: linkMatch ? linkMatch[1] : ("https://www.youtube.com/watch?v=" + videoIdMatch[1])},
-			author: {
-				name: decodeXmlEntities(authorNameMatch ? authorNameMatch[1] : null),
-				uri: authorUriMatch ? authorUriMatch[1] : null
-			},
-			"media:group": {
-				"media:title": decodeXmlEntities(titleMatch ? titleMatch[1] : videoIdMatch[1]),
-				"media:description": decodeXmlEntities(descriptionMatch ? descriptionMatch[1] : null),
-				"media:thumbnail$attrs": thumbMatch ? {
-					url: thumbMatch[1],
-					width: widthMatch ? widthMatch[1] : null,
-					height: heightMatch ? heightMatch[1] : null
-				} : null
-			}
+			description: decodeXmlEntities(descriptionMatch ? descriptionMatch[1] : null),
+			thumbnailUrl: thumbMatch ? thumbMatch[1] : (`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`),
+			thumbnailWidth: widthMatch ? Number(widthMatch[1]) : 480,
+			thumbnailHeight: heightMatch ? Number(heightMatch[1]) : 360
 		});
 	}
 	return entries;
 }
 
-function resolveEntries(xml, jsonObject) {
-	const parsed = entriesFromParsedFeed(jsonObject);
-	const xmlCount = countVideoIdsInXml(xml);
-	if (xmlCount > parsed.length) {
-		const fallback = entriesFromAtomXml(xml);
-		if (fallback.length > parsed.length) {
-			return fallback;
-		}
+function itemUriForVideo(videoId) {
+	// Include list= so these items do not collide with the same watch URLs from
+	// the built-in YouTube Channel connector (Tapestry keys items by URI).
+	const playlistId = getItem("playlistId");
+	if (playlistId != null && playlistId.length > 0) {
+		return `https://www.youtube.com/watch?v=${videoId}&list=${playlistId}`;
 	}
-	return parsed;
+	return `https://www.youtube.com/watch?v=${videoId}`;
 }
 
 function truncatePlainText(text, maxChars) {
@@ -367,29 +288,38 @@ function truncatePlainText(text, maxChars) {
 	return clipped.replace(/[.,;:!?-]*$/, "") + "…";
 }
 
+function descriptionMode() {
+	if (typeof descriptionLength !== "undefined" && descriptionLength != null && String(descriptionLength).length > 0) {
+		return String(descriptionLength).trim();
+	}
+	if (typeof includeDescription !== "undefined" && includeDescription == "off") {
+		return "Off";
+	}
+	if (typeof truncateDescription !== "undefined" && truncateDescription == "off" &&
+		typeof includeDescription !== "undefined" && includeDescription == "on") {
+		return "Full";
+	}
+	return "Short";
+}
+
 function formatDescription(rawDescription) {
 	if (rawDescription == null || rawDescription.length === 0) {
 		return null;
 	}
 
-	const mode = (typeof descriptionLength !== "undefined" && descriptionLength != null)
-		? descriptionLength
-		: ((typeof includeDescription !== "undefined" && includeDescription == "off") ? "Off" : "Short");
-
+	const mode = descriptionMode();
 	if (mode == "Off" || mode == "off") {
 		return null;
 	}
 
 	let text = String(rawDescription);
-	if (mode == "Short" || mode == "short") {
-		// Prefer the first paragraph when it's already concise.
+	if (mode == "Short" || mode == "short" || mode == "Truncate") {
 		const firstParagraph = text.split(/\n\n+/)[0] || text;
 		text = truncatePlainText(firstParagraph, SHORT_DESCRIPTION_CHARS);
 		const linked = text.replace(urlRegex, "<a href=\"$1\">$1</a>");
 		return `<p>${linked}</p>`;
 	}
 
-	// Full
 	const linkedDescription = text.replace(urlRegex, "<a href=\"$1\">$1</a>");
 	const paragraphs = linkedDescription.split("\n\n");
 	return paragraphs.map((paragraph) => {
@@ -400,16 +330,12 @@ function formatDescription(rawDescription) {
 }
 
 function embedHost() {
-	// Privacy-Enhanced Mode reduces third-party cookies / personalization.
-	// It is not ad-free; YouTube may still show ads inside the player.
 	return privacyEnhanced != "off"
 		? "https://www.youtube-nocookie.com"
 		: "https://www.youtube.com";
 }
 
 function buildEmbedHtml(videoId) {
-	// playsinline=1 keeps iOS WKWebView from handing off to the YouTube app.
-	// rel=0 / modestbranding=1 / iv_load_policy=3 trim chrome and related noise.
 	const params = [
 		"playsinline=1",
 		"rel=0",
@@ -418,86 +344,47 @@ function buildEmbedHtml(videoId) {
 		"fs=1"
 	].join("&");
 	const src = `${embedHost()}/embed/${videoId}?${params}`;
-	return `<div class="tapestry-youtube-embed"><iframe id="player-${videoId}" type="text/html" width="640" height="390" src="${src}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen playsinline></iframe></div>`;
+	return `<iframe id="player-${videoId}" type="text/html" width="640" height="390" src="${src}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen playsinline></iframe>`;
 }
 
-function buildAttachments(videoId, title, thumbnailUrl, thumbnailWidth, thumbnailHeight) {
-	const attachments = [];
-
-	// Timeline hero only — avoid a second link-preview card that repeats the title
-	// and points at youtube-nocookie.com (detail playback uses the body iframe).
-	if (thumbnailUrl != null) {
-		const media = MediaAttachment.createWithUrl(thumbnailUrl);
-		media.mimeType = "image/jpeg";
-		media.text = title;
-		if (thumbnailWidth != null && thumbnailHeight != null) {
-			media.aspectSize = {width: thumbnailWidth, height: thumbnailHeight};
-		}
-		attachments.push(media);
-	}
-
-	return attachments;
-}
-
-function buildItemFromEntry(entry) {
-	const videoId = entryVideoId(entry);
+function buildItem(entry) {
+	const videoId = entry.videoId;
 	if (videoId == null) {
 		return null;
 	}
 
-	const url = entryAlternateUrl(entry) ?? `https://www.youtube.com/watch?v=${videoId}`;
-	const published = entry.published;
-	const date = published != null ? new Date(published) : new Date();
+	const date = entry.published != null ? new Date(entry.published) : new Date();
 	if (isNaN(date.getTime())) {
 		return null;
 	}
 
-	const mediaGroup = entry["media:group"];
-	const title = decodeXmlEntities(mediaGroup != null ? mediaGroup["media:title"] : entry.title) || videoId;
-
-	let thumbnailUrl = null;
-	let thumbnailWidth = null;
-	let thumbnailHeight = null;
-	const thumbAttrs = mediaGroup != null ? mediaGroup["media:thumbnail$attrs"] : null;
-	if (thumbAttrs != null && thumbAttrs.url != null) {
-		thumbnailUrl = thumbAttrs.url;
-		if (thumbAttrs.width != null) {
-			thumbnailWidth = Number(thumbAttrs.width);
-		}
-		if (thumbAttrs.height != null) {
-			thumbnailHeight = Number(thumbAttrs.height);
-		}
-	}
-	if (thumbnailUrl == null) {
-		thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
-		thumbnailWidth = 480;
-		thumbnailHeight = 360;
-	}
-
-	const rawDescription = mediaGroup != null ? mediaGroup["media:description"] : null;
-	const description = formatDescription(rawDescription);
+	const title = entry.title || videoId;
+	const uri = itemUriForVideo(videoId);
+	const description = formatDescription(entry.description);
 	const embed = buildEmbedHtml(videoId);
 
-	const resultItem = Item.createWithUriDate(url, date);
+	const resultItem = Item.createWithUriDate(uri, date);
 	resultItem.title = title;
 	resultItem.body = description != null ? embed + description : embed;
 	resultItem.author = createFeedIdentity();
-	resultItem.attachments = buildAttachments(
-		videoId,
-		title,
-		thumbnailUrl,
-		thumbnailWidth,
-		thumbnailHeight
-	);
+
+	const media = MediaAttachment.createWithUrl(entry.thumbnailUrl || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`);
+	media.mimeType = "image/jpeg";
+	media.text = title;
+	if (entry.thumbnailWidth != null && entry.thumbnailHeight != null) {
+		media.aspectSize = {width: entry.thumbnailWidth, height: entry.thumbnailHeight};
+	}
+	resultItem.attachments = [media];
+
 	return resultItem;
 }
 
 async function load() {
 	const feedUrl = await getFeedUrl();
-	const xml = await sendRequest(feedUrl);
-	const jsonObject = await xmlParse(xml);
-	const allEntries = resolveEntries(xml, jsonObject);
+	const xml = await sendRequest(feedUrl, "GET", null, extraHeaders);
 
+	// Always parse entries from raw Atom XML for playlists/channels.
+	const allEntries = entriesFromAtomXml(xml);
 	allEntries.sort((a, b) => {
 		const aDate = new Date(a.published || 0).getTime();
 		const bDate = new Date(b.published || 0).getTime();
@@ -507,26 +394,14 @@ async function load() {
 	const results = [];
 	const seen = {};
 	for (const entry of allEntries) {
-		try {
-			const videoId = entryVideoId(entry);
-			if (videoId == null) {
-				continue;
-			}
-			const url = entryAlternateUrl(entry) ?? `https://www.youtube.com/watch?v=${videoId}`;
-			if (seen[url] == true) {
-				continue;
-			}
-
-			const resultItem = buildItemFromEntry(entry);
-			if (resultItem == null) {
-				continue;
-			}
-			seen[url] = true;
-			results.push(resultItem);
-		}
-		catch (e) {
-			// Skip malformed entries; still return the rest of the playlist.
+		if (entry.videoId == null || seen[entry.videoId] == true) {
 			continue;
+		}
+		seen[entry.videoId] = true;
+
+		const resultItem = buildItem(entry);
+		if (resultItem != null) {
+			results.push(resultItem);
 		}
 	}
 

@@ -10,7 +10,9 @@
 			"name": "descriptionLength",
 			"type": "choices",
 			"prompt": "Video Description",
-			"value": "Short,Full,Off"
+			"value": "Short",
+			"choices": "Short, Full, Off",
+			"placeholder": "Short truncates the summary under the video"
 		}
 	]
 }
