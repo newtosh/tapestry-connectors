@@ -40,12 +40,10 @@ function loadIconUrl() {
 	return iconUrl;
 }
 
-function createAuthorIdentity(authorName) {
-	if (authorName == null || authorName.length === 0 || authorName === "Cool Material") {
-		return null;
-	}
-	const identity = Identity.createWithName(authorName);
+function createFeedIdentity() {
+	const identity = Identity.createWithName("Cool Material");
 	identity.uri = COOL_MATERIAL_BASE_URL;
+	identity.avatar = COOL_MATERIAL_ICON;
 	return identity;
 }
 
@@ -57,7 +55,8 @@ async function verify() {
 		processVerification({
 			displayName: "Cool Material",
 			icon: COOL_MATERIAL_ICON,
-			baseUrl: COOL_MATERIAL_BASE_URL
+			baseUrl: COOL_MATERIAL_BASE_URL,
+			accountIdentity: createFeedIdentity()
 		});
 	}
 }
@@ -192,6 +191,7 @@ function buildStealItem(feedItem) {
 	if (content != null && content.length > 0) {
 		resultItem.body = content;
 	}
+	resultItem.author = createFeedIdentity();
 	resultItem.annotations = [Annotation.createWithText("Steals")];
 
 	const attachments = [];
@@ -256,14 +256,14 @@ async function buildEditorialItem(feedItem) {
 	if (content != null && content.length > 0) {
 		resultItem.body = content;
 	}
-	const author = createAuthorIdentity(authorName);
-	if (author != null) {
-		resultItem.author = author;
-	}
-
-	const category = pickEditorialCategory(item.category);
-	if (category != null) {
-		resultItem.annotations = [Annotation.createWithText(category)];
+	resultItem.author = createFeedIdentity();
+	if (authorName != null && authorName.length > 0 && authorName !== "Cool Material") {
+		resultItem.annotations = [Annotation.createWithText(`by ${authorName}`)];
+	} else {
+		const category = pickEditorialCategory(item.category);
+		if (category != null) {
+			resultItem.annotations = [Annotation.createWithText(category)];
+		}
 	}
 
 	const attachments = [];

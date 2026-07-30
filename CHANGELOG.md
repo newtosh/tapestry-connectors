@@ -4,6 +4,24 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.polygon.feed 0.1.14] - 2026-07-30
+
+### Fixed
+
+- Restore v0.1.7/v0.1.11 post-layout pattern: feed identity with hosted dark avatar (article layout always uses transparent `lookupIcon(polygon.com)`). Writer byline via annotation.
+
+## [com.gearpatrol.feed 0.1.10] - 2026-07-30
+
+### Fixed
+
+- Restore post layout with branded feed identity avatar and a single writer byline annotation.
+
+## [com.coolmaterial.steals.feed 0.2.12] - 2026-07-30
+
+### Fixed
+
+- Restore post layout with branded feed identity avatar and a single writer byline annotation.
+
 ## [com.polygon.feed 0.1.13] - 2026-07-30
 
 ### Fixed

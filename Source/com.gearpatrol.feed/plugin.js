@@ -15,12 +15,10 @@ function loadIconUrl() {
 	return iconUrl;
 }
 
-function createAuthorIdentity(authorName) {
-	if (authorName == null || authorName.length === 0) {
-		return null;
-	}
-	const identity = Identity.createWithName(authorName);
+function createFeedIdentity() {
+	const identity = Identity.createWithName("Gear Patrol");
 	identity.uri = GEAR_PATROL_BASE_URL;
+	identity.avatar = GEAR_PATROL_ICON;
 	return identity;
 }
 
@@ -33,7 +31,8 @@ async function verify() {
 		processVerification({
 			displayName: extractString(channel.title) ?? "Gear Patrol",
 			icon: GEAR_PATROL_ICON,
-			baseUrl: GEAR_PATROL_BASE_URL
+			baseUrl: GEAR_PATROL_BASE_URL,
+			accountIdentity: createFeedIdentity()
 		});
 	}
 }
@@ -98,14 +97,15 @@ async function load() {
 			if (content != null && content.length > 0) {
 				resultItem.body = content;
 			}
-			const author = createAuthorIdentity(authorName);
-			if (author != null) {
-				resultItem.author = author;
-			}
-
-			const category = formatCategory(item.category);
-			if (category != null) {
-				resultItem.annotations = [Annotation.createWithText(category)];
+			resultItem.author = createFeedIdentity();
+			// Single byline annotation only (category mashup becomes "by tbowe Audio").
+			if (authorName != null && authorName.length > 0) {
+				resultItem.annotations = [Annotation.createWithText(`by ${authorName}`)];
+			} else {
+				const category = formatCategory(item.category);
+				if (category != null) {
+					resultItem.annotations = [Annotation.createWithText(category)];
+				}
 			}
 
 			const attachments = [];
