@@ -427,13 +427,7 @@ async function load() {
 		results.push(resultItem);
 	}
 
-	if (results.length > 0) {
-		// Visible diagnostic: if this says 15 but the feed still shows 1, the app is
-		// filtering after import (age/dedupe). If it says 1, parsing/network is at fault.
-		const note = Annotation.createWithText("Loaded " + results.length + " of " + xmlIdCount + " feed videos");
-		results[0].annotations = [note];
-	}
-	else if (xmlIdCount > 0) {
+	if (results.length == 0 && xmlIdCount > 0) {
 		processError(Error("Found " + xmlIdCount + " videos in the playlist feed but could not build timeline items."));
 		return;
 	}

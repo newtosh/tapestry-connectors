@@ -6,6 +6,8 @@ Community connector for YouTube **playlists** (or channels) in Tapestry. Separat
 
 **Description:** use **Video Description** → Short / Full / Off to control how much summary text appears under the embed.
 
+**Note:** Loom shows the full Atom set (up to 15). On iPhone, Tapestry may only keep newer cards in the timeline — quiet playlists can look like a single item even though the connector imported them all.
+
 **Try:** [Hardware Reviews playlist](https://www.youtube.com/playlist?list=PLJtitKU0CAegwL_3j59S7_93IEzvhYcDR)
 
 **More info:** [github.com/newtosh/tapestry-connectors](https://github.com/newtosh/tapestry-connectors)

@@ -4,6 +4,12 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.newtosh.youtube.playlist 0.1.4] - 2026-07-30
+
+### Changed
+
+- Remove the temporary **Loaded N of M feed videos** diagnostic annotation (Loom + iOS confirmed the connector imports the full playlist; iOS then prunes older cards).
+
 ## [com.newtosh.youtube.playlist 0.1.3] - 2026-07-30
 
 ### Fixed
