@@ -64,6 +64,25 @@ Each connector has `version.json`:
 
 Bump both when shipping a new release. See [CHANGELOG.md](../CHANGELOG.md).
 
+## Repository hygiene
+
+- **Tracked source only** — `Downloads/*.tapestry` and `local/` are gitignored; only `Downloads/.gitkeep` is committed.
+- **CI** — `.github/workflows/ci.yml` runs `make build` on every push and pull request to `main`.
+- **Releases** — push a `v*` tag (or run the Release workflow) to publish `.tapestry` packages; see [README](../README.md#publishing-a-release).
+
+## Branch protection (`main`)
+
+`main` is protected on GitHub:
+
+| Rule | Setting |
+|------|---------|
+| Force push | Blocked |
+| Branch deletion | Blocked |
+| Required status check | `CI / build` must pass before merging PRs |
+| Admin override | Enabled (`enforce_admins: false`) — repo admins can bypass when needed |
+
+Direct pushes to `main` remain allowed for maintainers; PRs require green CI. Admins can bypass protection for hotfixes or release tags.
+
 ## Optional: local machine overrides
 
 Machine-specific configuration (SSH hosts, custom clone paths, legacy rsync) belongs **outside** this repo or in a gitignored `local/` directory. See [examples/remote-rsync/README.md](../examples/remote-rsync/README.md) if you prefer syncing from Linux instead of `git pull` on the Mac.

@@ -68,7 +68,7 @@ Requires Python 3 and Pillow (`pip install pillow`) when rebuilding icons.
 ```text
 Source/                 Connectors (one folder per reverse-domain id)
 Downloads/              Packaged .tapestry outputs (gitignored)
-.github/workflows/      CI — release packaging on version tags
+.github/workflows/      CI build on PRs; release packaging on version tags
 scripts/                Portable build + Mac mini update helpers
 docs/                   Development guide
 examples/remote-rsync/  Optional private rsync workflow (not used by default)
