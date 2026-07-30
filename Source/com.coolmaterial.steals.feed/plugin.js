@@ -468,7 +468,7 @@ function pickSearchImageUrl(html, urlPath, title, articleDate) {
 			continue;
 		}
 		const imageUrl = normalizeWordPressImageUrl(pair.murl);
-		if (!isPlaceholderImage(imageUrl)) {
+		if (!isPlaceholderImage(imageUrl) && hasImageExtension(imageUrl)) {
 			return imageUrl;
 		}
 	}
@@ -527,7 +527,7 @@ function rankSearchImageCandidates(candidates, urlPath, title, articleDate) {
 			continue;
 		}
 		seen.add(candidate);
-		if (isPlaceholderImage(candidate)) {
+		if (isPlaceholderImage(candidate) || !hasImageExtension(candidate)) {
 			continue;
 		}
 
@@ -563,7 +563,7 @@ function rankSearchImageCandidates(candidates, urlPath, title, articleDate) {
 	}
 
 	for (const candidate of candidates) {
-		if (!isPlaceholderImage(candidate)) {
+		if (!isPlaceholderImage(candidate) && hasImageExtension(candidate)) {
 			return candidate;
 		}
 	}
@@ -589,7 +589,7 @@ function articleUploadPathPrefix(articleDate) {
 
 function normalizeWordPressImageUrl(imageUrl) {
 	const decoded = decodeHtmlEntities(imageUrl);
-	return decoded.replace(/-(\d+)x(\d+)(\.(?:jpe?g|png|webp|avif|gif))$/i, "$2");
+	return decoded.replace(/-(\d+)x(\d+)(\.(?:jpe?g|png|webp|avif|gif))$/i, "$3");
 }
 
 function isCloudflareChallenge(html) {
@@ -802,6 +802,10 @@ function pickLargestSrcsetUrl(srcOrSrcset) {
 
 function isPlaceholderImage(url) {
 	return /Funny-Meme-Square|placeholder|1x1|pixel\.gif/i.test(url);
+}
+
+function hasImageExtension(url) {
+	return /\.(?:jpe?g|png|webp|avif|gif)(?:\?|$)/i.test(url);
 }
 
 function extractPurchaseLinkEntries(html) {
