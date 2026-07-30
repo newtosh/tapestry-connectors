@@ -4,6 +4,18 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.gearpatrol.feed 0.1.7] - 2026-07-30
+
+### Fixed
+
+- Match Polygon byline handling: use a single writer annotation only. Pairing byline + category annotations was concatenated in the timeline (e.g. `by tbowe Audio`).
+
+## [com.coolmaterial.steals.feed 0.2.9] - 2026-07-30
+
+### Fixed
+
+- Match Polygon byline handling: use a single writer annotation only (no category mashup).
+
 ## [com.polygon.feed 0.1.11] - 2026-07-30
 
 ### Fixed

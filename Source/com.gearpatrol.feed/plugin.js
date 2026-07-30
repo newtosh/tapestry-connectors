@@ -99,16 +99,15 @@ async function load() {
 			}
 			resultItem.author = createFeedIdentity();
 
-			const annotations = [];
+			// Match Polygon: one byline annotation only. Extra annotations get
+			// concatenated in the timeline (e.g. "by tbowe" + "Audio").
 			if (authorName != null && authorName.length > 0) {
-				annotations.push(Annotation.createWithText(`by ${authorName}`));
-			}
-			const category = formatCategory(item.category);
-			if (category != null) {
-				annotations.push(Annotation.createWithText(category));
-			}
-			if (annotations.length > 0) {
-				resultItem.annotations = annotations;
+				resultItem.annotations = [Annotation.createWithText(`by ${authorName}`)];
+			} else {
+				const category = formatCategory(item.category);
+				if (category != null) {
+					resultItem.annotations = [Annotation.createWithText(category)];
+				}
 			}
 
 			const attachments = [];

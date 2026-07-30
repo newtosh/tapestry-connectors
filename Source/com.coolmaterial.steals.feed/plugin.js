@@ -257,16 +257,14 @@ async function buildEditorialItem(feedItem) {
 	}
 	resultItem.author = createFeedIdentity();
 
-	const annotations = [];
+	// Match Polygon: one byline annotation only (no category mashup).
 	if (authorName != null && authorName.length > 0 && authorName !== "Cool Material") {
-		annotations.push(Annotation.createWithText(`by ${authorName}`));
-	}
-	const category = pickEditorialCategory(item.category);
-	if (category != null) {
-		annotations.push(Annotation.createWithText(category));
-	}
-	if (annotations.length > 0) {
-		resultItem.annotations = annotations;
+		resultItem.annotations = [Annotation.createWithText(`by ${authorName}`)];
+	} else {
+		const category = pickEditorialCategory(item.category);
+		if (category != null) {
+			resultItem.annotations = [Annotation.createWithText(category)];
+		}
 	}
 
 	const attachments = [];
