@@ -7,10 +7,10 @@
 			"value": "on"
 		},
 		{
-			"name": "includeDescription",
-			"type": "switch",
-			"prompt": "Include Video Description",
-			"value": "on"
+			"name": "descriptionLength",
+			"type": "choices",
+			"prompt": "Video Description",
+			"value": "Short,Full,Off"
 		}
 	]
 }

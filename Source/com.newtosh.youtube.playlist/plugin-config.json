@@ -4,13 +4,13 @@
   "service_name": "Playlist Feed",
   "default_color": "slate",
   "item_style": "post",
-  "icon": "https://raw.githubusercontent.com/newtosh/tapestry-connectors/refs/heads/main/Source/com.newtosh.youtube.playlist/icon.png?v=1",
+  "icon": "https://raw.githubusercontent.com/newtosh/tapestry-connectors/refs/heads/main/Source/com.newtosh.youtube.playlist/icon.png?v=2",
   "site_prompt": "Playlist URL",
   "site_placeholder": "youtube.com/playlist?list=PLxxxxxx",
   "site_help": "Paste a YouTube playlist URL (channel playlists work).\n\nExamples:\n\n`youtube.com/playlist?list=PLJtitKU0CAegwL_3j59S7_93IEzvhYcDR`\n\nA channel URL also works \u2014 videos come from the channel feed.\n\nThis is a community connector (separate from the built-in YouTube Channel connector). Playback uses an in-app embed (Privacy Enhanced Mode by default) with `playsinline` so iOS stays in Tapestry instead of jumping to the YouTube app.",
   "needs_verification": true,
   "provides_attachments": true,
   "minimum_app_version": "1.3",
-  "version": 1,
-  "semver": "0.1.0"
+  "version": 2,
+  "semver": "0.1.1"
 }
