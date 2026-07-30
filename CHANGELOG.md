@@ -4,6 +4,15 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.newtosh.youtube.playlist 0.1.0] - 2026-07-30
+
+### Added
+
+- New **YT Playlist Feed** community connector (`com.newtosh.youtube.playlist`) — labeled separately from the built-in YouTube Channel connector — that accepts playlist URLs (stock `com.youtube` rejects them) via YouTube’s public `playlist_id` Atom feed.
+- In-app detail embeds using Privacy Enhanced Mode (`youtube-nocookie.com`) plus `playsinline=1` / `rel=0` / `modestbranding=1` to prefer watching inside Tapestry instead of handing off to the YouTube app.
+- Timeline thumbnail `MediaAttachment` plus a prefilled `LinkAttachment` so cards do not need Open Graph fetches.
+- Optional channel URL support and toggles for privacy-enhanced embeds and video descriptions.
+
 ## [com.polygon.feed 0.1.17] - 2026-07-30
 
 ### Fixed

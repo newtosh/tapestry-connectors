@@ -20,6 +20,12 @@ cp "$CONNECTOR_DIR/icon.png" "$STAGING/"
 cp -r "$CONNECTOR_DIR/resources" "$STAGING/"
 cp "$CONNECTOR_DIR/version.json" "$STAGING/"
 
+for optional in ui-config.json discovery.json suggestions.json apps.json; do
+	if [[ -f "$CONNECTOR_DIR/$optional" ]]; then
+		cp "$CONNECTOR_DIR/$optional" "$STAGING/"
+	fi
+done
+
 mkdir -p "$OUT_DIR"
 
 python3 <<PY
