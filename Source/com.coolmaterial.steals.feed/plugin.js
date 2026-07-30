@@ -60,7 +60,10 @@ async function verify() {
 }
 
 async function load() {
-	const editorialResponse = await sendConditionalRequest(site, "GET", null, {"user-agent": userAgent});
+	let editorialResponse = await sendConditionalRequest(site, "GET", null, {"user-agent": userAgent});
+	if (editorialResponse == null || editorialResponse.length === 0) {
+		editorialResponse = await sendRequest(site, "GET", null, {"user-agent": userAgent});
+	}
 	const stealsResponse = await sendRequest(COOL_MATERIAL_STEALS_FEED, "GET", null, {"user-agent": userAgent});
 
 	const feedItems = [];
@@ -82,7 +85,7 @@ async function load() {
 	const seenUris = new Set();
 
 	for (const item of feedItems) {
-		if (isStealItem(item)) {
+		if (isStealItem(item.rssItem)) {
 			const resultItem = buildStealItem(item);
 			if (resultItem == null || seenUris.has(resultItem.uri)) {
 				continue;
@@ -131,7 +134,7 @@ function isStealItem(item) {
 		return true;
 	}
 
-	const link = decodeHtmlEntities(feedValueToString(item.link));
+	const link = decodeHtmlEntities(extractItemLink(item) ?? feedValueToString(item.link));
 	if (link.includes("post_type=steals") || link.includes("/steals/")) {
 		return true;
 	}
@@ -218,7 +221,7 @@ async function buildEditorialItem(feedItem) {
 	}
 
 	const url = extractEditorialUri(item);
-	if (url == null || !isEditorialArticleUrl(url)) {
+	if (url == null || isAffiliateLink(url)) {
 		return null;
 	}
 
@@ -493,12 +496,24 @@ function extractStealUri(item) {
 }
 
 function extractEditorialUri(item) {
-	const link = feedValueToString(item.link);
-	if (link.length > 0) {
-		return decodeHtmlEntities(link);
+	const link = extractItemLink(item);
+	if (link != null) {
+		return link;
 	}
 	const guid = feedValueToString(item.guid);
 	return guid.length > 0 ? decodeHtmlEntities(guid) : null;
+}
+
+function extractItemLink(item) {
+	if (item.link == null) {
+		return null;
+	}
+	if (typeof(item.link) === "string") {
+		const link = item.link.trim();
+		return link.length > 0 ? decodeHtmlEntities(link) : null;
+	}
+	const link = feedValueToString(item.link);
+	return link.length > 0 ? decodeHtmlEntities(link) : null;
 }
 
 function feedValueToString(value, allowHTML = false) {
