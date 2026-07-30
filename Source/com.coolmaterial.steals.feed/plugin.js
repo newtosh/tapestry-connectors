@@ -237,7 +237,7 @@ async function buildEditorialItem(feedItem) {
 		heroImageUrl = attachmentUrlFromMedia(item["media:content$attrs"]);
 	}
 
-	const enrichment = await enrichFromArticlePage(url);
+	const enrichment = await enrichFromArticlePage(url, title, feedItem.date);
 	if (enrichment != null) {
 		if (enrichment.bodyHtml != null && enrichment.bodyHtml.length > 0) {
 			content = enrichment.bodyHtml;
@@ -281,7 +281,7 @@ async function buildEditorialItem(feedItem) {
 	return resultItem;
 }
 
-async function enrichFromArticlePage(url) {
+async function enrichFromArticlePage(url, title, articleDate) {
 	if (!isEditorialArticleUrl(url)) {
 		return null;
 	}
@@ -304,6 +304,10 @@ async function enrichFromArticlePage(url) {
 		if (searchSnippet != null && searchSnippet.length > 0) {
 			summary = searchSnippet;
 		}
+	}
+
+	if (imageUrl == null) {
+		imageUrl = await fetchSearchImageForUrl(url, title, articleDate);
 	}
 
 	if (summary == null && bodyHtml == null && imageUrl == null && purchaseLinks == null) {
@@ -394,7 +398,198 @@ function cleanSearchSnippet(snippetHtml) {
 			.replace(/<[^>]+>/g, " ")
 			.replace(/\s+/g, " ")
 			.trim()
-	);
+	).replace(/^\|\s*/, "");
+}
+
+async function fetchSearchImageForUrl(url, title, articleDate) {
+	const urlPath = extractCoolMaterialPath(url);
+	if (urlPath == null) {
+		return null;
+	}
+
+	const slugQuery = slugKeywordsFromPath(urlPath);
+	const searchQueries = [`site:coolmaterial.com${urlPath}`];
+	if (slugQuery != null && slugQuery.length > 0) {
+		searchQueries.push(`site:coolmaterial.com ${slugQuery}`);
+	}
+	if (title != null && title.length > 0) {
+		searchQueries.push(`site:coolmaterial.com "${title}"`);
+	}
+
+	const searchUrls = [];
+	for (const searchQuery of searchQueries) {
+		searchUrls.push(`https://search.brave.com/images?q=${encodeURIComponent(searchQuery)}`);
+		searchUrls.push(`https://www.bing.com/images/search?q=${encodeURIComponent(searchQuery)}`);
+	}
+
+	const searchUserAgents = ["Mozilla/5.0", userAgent, ARTICLE_FETCH_USER_AGENTS[1]];
+
+	for (const searchUrl of searchUrls) {
+		for (const searchUserAgent of searchUserAgents) {
+			try {
+				const html = await sendRequest(searchUrl, "GET", null, {
+					"user-agent": searchUserAgent,
+					"Accept": "text/html"
+				});
+				if (html == null || html.length === 0 || isRateLimitedSearchResponse(html)) {
+					continue;
+				}
+
+				const imageUrl = pickSearchImageUrl(html, urlPath, title, articleDate);
+				if (imageUrl != null) {
+					return imageUrl;
+				}
+			} catch (error) {
+				continue;
+			}
+		}
+	}
+
+	return null;
+}
+
+function slugKeywordsFromPath(urlPath) {
+	const slug = urlPath.replace(/^\/(?:partner|feature)\//i, "").replace(/\/$/, "");
+	if (slug.length === 0) {
+		return null;
+	}
+	return slug.replace(/-/g, " ").trim();
+}
+
+function isRateLimitedSearchResponse(html) {
+	return html.includes("Too Many Requests") || html.includes("429 Too Many Requests");
+}
+
+function pickSearchImageUrl(html, urlPath, title, articleDate) {
+	const normalizedPath = urlPath.replace(/\/$/, "").toLowerCase();
+	const bingPairs = extractBingImagePairs(html);
+	for (const pair of bingPairs) {
+		if (!pair.purl.toLowerCase().includes(normalizedPath)) {
+			continue;
+		}
+		const imageUrl = normalizeWordPressImageUrl(pair.murl);
+		if (!isPlaceholderImage(imageUrl)) {
+			return imageUrl;
+		}
+	}
+
+	const candidates = extractCoolMaterialUploadUrls(html);
+	return rankSearchImageCandidates(candidates, urlPath, title, articleDate);
+}
+
+function extractBingImagePairs(html) {
+	const pairs = [];
+	const pairRegex = /&quot;purl&quot;:&quot;([^&]*)&quot;,&quot;murl&quot;:&quot;([^&]*)&quot;/gi;
+	let pairMatch = pairRegex.exec(html);
+	while (pairMatch != null) {
+		pairs.push({
+			purl: decodeHtmlEntities(pairMatch[1]),
+			murl: decodeHtmlEntities(pairMatch[2])
+		});
+		pairMatch = pairRegex.exec(html);
+	}
+	return pairs;
+}
+
+function extractCoolMaterialUploadUrls(html) {
+	const candidates = [];
+	const imageRegex = /https:\/\/coolmaterial\.com\/wp-content\/uploads\/[^"\\&\s<>]+/gi;
+	let imageMatch = imageRegex.exec(html);
+	while (imageMatch != null) {
+		candidates.push(normalizeWordPressImageUrl(imageMatch[0]));
+		imageMatch = imageRegex.exec(html);
+	}
+
+	const bingMurlRegex = /&quot;murl&quot;:&quot;(https:\/\/coolmaterial\.com\/wp-content\/uploads\/[^&]+)&quot;/gi;
+	let bingMatch = bingMurlRegex.exec(html);
+	while (bingMatch != null) {
+		candidates.push(normalizeWordPressImageUrl(decodeHtmlEntities(bingMatch[1])));
+		bingMatch = bingMurlRegex.exec(html);
+	}
+
+	return candidates;
+}
+
+function rankSearchImageCandidates(candidates, urlPath, title, articleDate) {
+	const slugQuery = slugKeywordsFromPath(urlPath);
+	const slugTokens = slugQuery != null ? slugQuery.split(/\s+/).filter((token) => token.length > 2) : [];
+	const titleTokens = title != null
+		? title.toLowerCase().split(/[^a-z0-9]+/).filter((token) => token.length > 2)
+		: [];
+	const uploadPathPrefix = articleUploadPathPrefix(articleDate);
+
+	let bestUrl = null;
+	let bestScore = -1;
+	const seen = new Set();
+
+	for (const candidate of candidates) {
+		if (seen.has(candidate)) {
+			continue;
+		}
+		seen.add(candidate);
+		if (isPlaceholderImage(candidate)) {
+			continue;
+		}
+
+		const lowerCandidate = candidate.toLowerCase();
+		let score = 0;
+		if (uploadPathPrefix != null && lowerCandidate.includes(uploadPathPrefix)) {
+			score += 12;
+		}
+		for (const token of slugTokens) {
+			if (lowerCandidate.includes(token)) {
+				score += 3;
+			}
+		}
+		for (const token of titleTokens) {
+			if (lowerCandidate.includes(token)) {
+				score += 1;
+			}
+		}
+
+		const dimensionMatch = candidate.match(/-(\d+)x(\d+)(\.(?:jpe?g|png|webp|avif|gif))$/i);
+		if (dimensionMatch != null) {
+			score += Math.min(parseInt(dimensionMatch[1], 10), 2000) / 1000;
+		}
+
+		if (score > bestScore) {
+			bestScore = score;
+			bestUrl = candidate;
+		}
+	}
+
+	if (bestUrl != null && bestScore > 0) {
+		return bestUrl;
+	}
+
+	for (const candidate of candidates) {
+		if (!isPlaceholderImage(candidate)) {
+			return candidate;
+		}
+	}
+
+	return null;
+}
+
+function articleUploadPathPrefix(articleDate) {
+	if (articleDate == null) {
+		return null;
+	}
+
+	const date = articleDate instanceof Date ? articleDate : new Date(articleDate);
+	if (isNaN(date.getTime())) {
+		return null;
+	}
+
+	const year = date.getUTCFullYear();
+	const month = date.getUTCMonth() + 1;
+	const monthString = month < 10 ? `0${month}` : `${month}`;
+	return `/uploads/${year}/${monthString}/`;
+}
+
+function normalizeWordPressImageUrl(imageUrl) {
+	const decoded = decodeHtmlEntities(imageUrl);
+	return decoded.replace(/-(\d+)x(\d+)(\.(?:jpe?g|png|webp|avif|gif))$/i, "$2");
 }
 
 function isCloudflareChallenge(html) {
