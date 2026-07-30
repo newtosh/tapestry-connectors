@@ -4,6 +4,24 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.polygon.feed 0.1.12] - 2026-07-30
+
+### Fixed
+
+- Move writer byline into the body below the title (with leading/trailing line breaks). Annotations render above the feed name; body placement matches the intended Verge-like order while keeping post layout and the branded icon.
+
+## [com.gearpatrol.feed 0.1.8] - 2026-07-30
+
+### Fixed
+
+- Move writer byline into the body below the title (with leading/trailing line breaks). Category stays as a separate annotation.
+
+## [com.coolmaterial.steals.feed 0.2.10] - 2026-07-30
+
+### Fixed
+
+- Move writer byline into the body below the title (with leading/trailing line breaks). Category stays as a separate annotation.
+
 ## [com.gearpatrol.feed 0.1.7] - 2026-07-30
 
 ### Fixed

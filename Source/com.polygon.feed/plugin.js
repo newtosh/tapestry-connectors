@@ -86,6 +86,10 @@ async function load() {
 				}
 			}
 
+			if (authorName != null && authorName.length > 0) {
+				content = prependByline(content, authorName);
+			}
+
 			const resultItem = Item.createWithUriDate(url, date);
 			if (title != null) {
 				resultItem.title = title;
@@ -94,9 +98,6 @@ async function load() {
 				resultItem.body = fixInlineTagSpacing(content);
 			}
 			resultItem.author = createFeedIdentity();
-			if (authorName != null && authorName.length > 0) {
-				resultItem.annotations = [Annotation.createWithText(`by ${authorName}`)];
-			}
 
 			const attachments = [];
 
@@ -134,6 +135,23 @@ async function load() {
 	} else {
 		processResults([]);
 	}
+}
+
+function prependByline(content, authorName) {
+	// Leading/trailing <br> approximate Verge article spacing around the byline.
+	const byline = `<p><br>by ${escapeHtml(authorName)}<br></p>`;
+	if (content == null || content.length === 0) {
+		return byline;
+	}
+	return `${byline}\n${content}`;
+}
+
+function escapeHtml(text) {
+	return String(text)
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;");
 }
 
 function fixInlineTagSpacing(bodyHtml) {
