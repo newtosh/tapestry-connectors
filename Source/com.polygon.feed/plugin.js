@@ -86,6 +86,10 @@ async function load() {
 				}
 			}
 
+			if (authorName != null && authorName.length > 0) {
+				content = prependByline(content, authorName);
+			}
+
 			const resultItem = Item.createWithUriDate(url, date);
 			if (title != null) {
 				resultItem.title = title;
@@ -93,10 +97,9 @@ async function load() {
 			if (content != null) {
 				resultItem.body = fixInlineTagSpacing(content);
 			}
+			// Post layout: feed identity avatar is the only way to show the hosted
+			// dark icon. Article layout always uses transparent lookupIcon(polygon.com).
 			resultItem.author = createFeedIdentity();
-			if (authorName != null && authorName.length > 0) {
-				resultItem.annotations = [Annotation.createWithText(`by ${authorName}`)];
-			}
 
 			const attachments = [];
 
@@ -134,6 +137,24 @@ async function load() {
 	} else {
 		processResults([]);
 	}
+}
+
+function prependByline(content, authorName) {
+	// Keep byline below the title (body) while post layout keeps the branded icon.
+	// <small> is best-effort — timeline preview may ignore it; position/icon stay correct.
+	const byline = `<p><small>by ${escapeHtml(authorName)}</small></p>`;
+	if (content == null || content.length === 0) {
+		return byline;
+	}
+	return `${byline}\n${content}`;
+}
+
+function escapeHtml(text) {
+	return String(text)
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;");
 }
 
 function fixInlineTagSpacing(bodyHtml) {

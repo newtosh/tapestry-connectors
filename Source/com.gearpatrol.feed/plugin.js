@@ -90,6 +90,10 @@ async function load() {
 				}
 			}
 
+			if (authorName != null && authorName.length > 0) {
+				content = prependByline(content, authorName);
+			}
+
 			const resultItem = Item.createWithUriDate(url, date);
 			if (title != null) {
 				resultItem.title = title;
@@ -98,14 +102,10 @@ async function load() {
 				resultItem.body = content;
 			}
 			resultItem.author = createFeedIdentity();
-			// Single byline annotation only (category mashup becomes "by tbowe Audio").
-			if (authorName != null && authorName.length > 0) {
-				resultItem.annotations = [Annotation.createWithText(`by ${authorName}`)];
-			} else {
-				const category = formatCategory(item.category);
-				if (category != null) {
-					resultItem.annotations = [Annotation.createWithText(category)];
-				}
+
+			const category = formatCategory(item.category);
+			if (category != null) {
+				resultItem.annotations = [Annotation.createWithText(category)];
 			}
 
 			const attachments = [];
@@ -285,6 +285,14 @@ function formatCategory(category) {
 	}
 	const text = String(category).trim();
 	return text.length > 0 ? text : null;
+}
+
+function prependByline(content, authorName) {
+	const byline = `<p><small>by ${escapeHtml(authorName)}</small></p>`;
+	if (content == null || content.length === 0) {
+		return byline;
+	}
+	return `${byline}\n${content}`;
 }
 
 function escapeHtml(text) {

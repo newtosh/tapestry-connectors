@@ -4,6 +4,24 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.polygon.feed 0.1.15] - 2026-07-30
+
+### Fixed
+
+- Stop trading icon vs byline: keep post layout + hosted dark feed avatar (only path for the branded icon), and put the writer byline in the body below the title (annotations render above the feed name). Wrapped in `<small>` as a best-effort size hint.
+
+## [com.gearpatrol.feed 0.1.11] - 2026-07-30
+
+### Fixed
+
+- Same dual approach: post-layout branded avatar + body byline below the title.
+
+## [com.coolmaterial.steals.feed 0.2.13] - 2026-07-30
+
+### Fixed
+
+- Same dual approach: post-layout branded avatar + body byline below the title on editorial posts.
+
 ## [com.polygon.feed 0.1.14] - 2026-07-30
 
 ### Fixed

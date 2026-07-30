@@ -1,1 +1,1 @@
-https://raw.githubusercontent.com/newtosh/tapestry-connectors/refs/heads/main/Source/com.gearpatrol.feed/icon.png?v=11
+https://raw.githubusercontent.com/newtosh/tapestry-connectors/refs/heads/main/Source/com.gearpatrol.feed/icon.png?v=12

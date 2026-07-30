@@ -1,1 +1,1 @@
-https://raw.githubusercontent.com/newtosh/tapestry-connectors/refs/heads/main/Source/com.coolmaterial.steals.feed/icon.png?v=14
+https://raw.githubusercontent.com/newtosh/tapestry-connectors/refs/heads/main/Source/com.coolmaterial.steals.feed/icon.png?v=15
