@@ -1,5 +1,5 @@
-# Cool Material Steals
+# Cool Material
 
-Optimized RSS feed for [Cool Material Steals](https://coolmaterial.com/steals/): branded icon, deal prices, affiliate buy links, and product images from the steals feed.
+Optimized feeds for [Cool Material](https://coolmaterial.com): editorial features and partner posts (with article summaries, hero images, and buy links) plus steals deals from the steals RSS feed.
 
 **More info:** [github.com/newtosh/tapestry-connectors](https://github.com/newtosh/tapestry-connectors)
