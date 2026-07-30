@@ -90,6 +90,10 @@ async function load() {
 				}
 			}
 
+			if (authorName != null && authorName.length > 0) {
+				content = prependByline(content, authorName);
+			}
+
 			const resultItem = Item.createWithUriDate(url, date);
 			if (title != null) {
 				resultItem.title = title;
@@ -99,16 +103,9 @@ async function load() {
 			}
 			resultItem.author = createFeedIdentity();
 
-			const annotations = [];
-			if (authorName != null && authorName.length > 0) {
-				annotations.push(Annotation.createWithText(`by ${authorName}`));
-			}
 			const category = formatCategory(item.category);
 			if (category != null) {
-				annotations.push(Annotation.createWithText(category));
-			}
-			if (annotations.length > 0) {
-				resultItem.annotations = annotations;
+				resultItem.annotations = [Annotation.createWithText(category)];
 			}
 
 			const attachments = [];
@@ -288,6 +285,14 @@ function formatCategory(category) {
 	}
 	const text = String(category).trim();
 	return text.length > 0 ? text : null;
+}
+
+function prependByline(content, authorName) {
+	const byline = `<p>by ${escapeHtml(authorName)}</p>`;
+	if (content == null || content.length === 0) {
+		return byline;
+	}
+	return `${byline}\n${content}`;
 }
 
 function escapeHtml(text) {

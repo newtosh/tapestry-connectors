@@ -248,6 +248,11 @@ async function buildEditorialItem(feedItem) {
 		}
 	}
 
+	const authorName = formatAuthorName(item["dc:creator"]);
+	if (authorName != null && authorName.length > 0 && authorName !== "Cool Material") {
+		content = prependByline(content, authorName);
+	}
+
 	const resultItem = Item.createWithUriDate(url, feedItem.date);
 	if (title != null) {
 		resultItem.title = title;
@@ -257,16 +262,9 @@ async function buildEditorialItem(feedItem) {
 	}
 	resultItem.author = createFeedIdentity();
 
-	const annotations = [];
-	if (authorName != null && authorName.length > 0 && authorName !== "Cool Material") {
-		annotations.push(Annotation.createWithText(`by ${authorName}`));
-	}
 	const category = pickEditorialCategory(item.category);
 	if (category != null) {
-		annotations.push(Annotation.createWithText(category));
-	}
-	if (annotations.length > 0) {
-		resultItem.annotations = annotations;
+		resultItem.annotations = [Annotation.createWithText(category)];
 	}
 
 	const attachments = [];
@@ -1101,6 +1099,14 @@ function attachmentUrlFromMedia(mediaAttributes) {
 		return mediaAttributes.url;
 	}
 	return null;
+}
+
+function prependByline(content, authorName) {
+	const byline = `<p>by ${escapeHtml(authorName)}</p>`;
+	if (content == null || content.length === 0) {
+		return byline;
+	}
+	return `${byline}\n${content}`;
 }
 
 function escapeHtml(text) {

@@ -4,6 +4,126 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.polygon.feed 0.1.17] - 2026-07-30
+
+### Fixed
+
+- Restore plain-text body bylines. Data-URI SVG byline images were dropped entirely by the timeline preview.
+
+## [com.gearpatrol.feed 0.1.13] - 2026-07-30
+
+### Fixed
+
+- Restore plain-text body bylines after data-URI SVG images were dropped by the timeline preview.
+
+## [com.coolmaterial.steals.feed 0.2.15] - 2026-07-30
+
+### Fixed
+
+- Restore plain-text body bylines after data-URI SVG images were dropped by the timeline preview.
+
+## [com.polygon.feed 0.1.16] - 2026-07-30
+
+### Fixed
+
+- Render writer bylines as compact SVG images in the body so they stay below the title and read smaller than paragraph text, without switching to article layout (which breaks the dark branded icon).
+
+## [com.gearpatrol.feed 0.1.12] - 2026-07-30
+
+### Fixed
+
+- Same compact SVG byline treatment for smaller below-title bylines with branded post-layout icons.
+
+## [com.coolmaterial.steals.feed 0.2.14] - 2026-07-30
+
+### Fixed
+
+- Same compact SVG byline treatment for editorial posts.
+
+## [com.polygon.feed 0.1.15] - 2026-07-30
+
+### Fixed
+
+- Stop trading icon vs byline: keep post layout + hosted dark feed avatar (only path for the branded icon), and put the writer byline in the body below the title (annotations render above the feed name). Wrapped in `<small>` as a best-effort size hint.
+
+## [com.gearpatrol.feed 0.1.11] - 2026-07-30
+
+### Fixed
+
+- Same dual approach: post-layout branded avatar + body byline below the title.
+
+## [com.coolmaterial.steals.feed 0.2.13] - 2026-07-30
+
+### Fixed
+
+- Same dual approach: post-layout branded avatar + body byline below the title on editorial posts.
+
+## [com.polygon.feed 0.1.14] - 2026-07-30
+
+### Fixed
+
+- Restore v0.1.7/v0.1.11 post-layout pattern: feed identity with hosted dark avatar (article layout always uses transparent `lookupIcon(polygon.com)`). Writer byline via annotation.
+
+## [com.gearpatrol.feed 0.1.10] - 2026-07-30
+
+### Fixed
+
+- Restore post layout with branded feed identity avatar and a single writer byline annotation.
+
+## [com.coolmaterial.steals.feed 0.2.12] - 2026-07-30
+
+### Fixed
+
+- Restore post layout with branded feed identity avatar and a single writer byline annotation.
+
+## [com.polygon.feed 0.1.13] - 2026-07-30
+
+### Fixed
+
+- Use article layout with the RSS writer as `item.author` so Tapestry renders the native smaller byline (body HTML cannot change timeline font size). Dropped `accountIdentity` to avoid a duplicate site byline.
+
+## [com.gearpatrol.feed 0.1.9] - 2026-07-30
+
+### Fixed
+
+- Use article layout with the RSS writer as `item.author` for the native smaller byline.
+
+## [com.coolmaterial.steals.feed 0.2.11] - 2026-07-30
+
+### Fixed
+
+- Use article layout with the RSS writer as `item.author` for the native smaller byline on editorial posts.
+
+## [com.polygon.feed 0.1.12] - 2026-07-30
+
+### Fixed
+
+- Move writer byline into the body below the title (with leading/trailing line breaks). Annotations render above the feed name; body placement matches the intended Verge-like order while keeping post layout and the branded icon.
+
+## [com.gearpatrol.feed 0.1.8] - 2026-07-30
+
+### Fixed
+
+- Move writer byline into the body below the title (with leading/trailing line breaks). Category stays as a separate annotation.
+
+## [com.coolmaterial.steals.feed 0.2.10] - 2026-07-30
+
+### Fixed
+
+- Move writer byline into the body below the title (with leading/trailing line breaks). Category stays as a separate annotation.
+
+## [com.gearpatrol.feed 0.1.7] - 2026-07-30
+
+### Fixed
+
+- Match Polygon byline handling: use a single writer annotation only. Pairing byline + category annotations was concatenated in the timeline (e.g. `by tbowe Audio`).
+
+## [com.coolmaterial.steals.feed 0.2.9] - 2026-07-30
+
+### Fixed
+
+- Match Polygon byline handling: use a single writer annotation only (no category mashup).
+
 ## [com.polygon.feed 0.1.11] - 2026-07-30
 
 ### Fixed

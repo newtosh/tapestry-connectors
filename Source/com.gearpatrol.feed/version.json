@@ -1,6 +1,6 @@
 {
-  "semver": "0.1.6",
-  "tapestry_version": 7,
+  "semver": "0.1.13",
+  "tapestry_version": 14,
   "icon_url": "https://raw.githubusercontent.com/newtosh/tapestry-connectors/refs/heads/main/Source/com.gearpatrol.feed/icon.png",
   "logo_url": "https://www.gearpatrol.com/wp-content/uploads/sites/2/2025/11/GP-Web-App-Manifest.webp",
   "logo_scale": 0.82
