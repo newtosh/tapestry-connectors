@@ -1,8 +1,8 @@
-// com.youtube.playlist
+// com.newtosh.youtube.playlist
 //
-// YouTube playlist (and channel) feeds with in-app embed playback.
-// Forked from TheIconfactory Tapestry com.youtube connector patterns:
-// playlist Atom feeds are supported here; stock com.youtube rejects them.
+// Community YouTube playlist (and channel) feeds with in-app embed playback.
+// Separate from the built-in com.youtube connector: playlist Atom feeds are
+// supported here; stock com.youtube rejects them.
 
 const avatarRegex = /<link rel="image_src" href="([^"]*)">/;
 const urlRegex = /(https?:[^\s]*)/g;

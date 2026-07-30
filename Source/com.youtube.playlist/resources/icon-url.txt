@@ -1,1 +1,0 @@
-https://raw.githubusercontent.com/newtosh/tapestry-connectors/refs/heads/main/Source/com.youtube.playlist/icon.png?v=1
