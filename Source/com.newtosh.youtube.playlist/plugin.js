@@ -1,8 +1,7 @@
 // com.newtosh.youtube.playlist
 //
 // Community YouTube playlist (and channel) feeds with in-app embed playback.
-// Separate from the built-in com.youtube connector: playlist Atom feeds are
-// supported here; stock com.youtube rejects them.
+// Modeled on TheIconfactory com.youtube, with playlist Atom feed support.
 
 const avatarRegex = /<link rel="image_src" href="([^"]*)">/;
 const ogImageRegex = /<meta\s+property="og:image"\s+content="([^"]+)"/i;
@@ -38,19 +37,15 @@ function createFeedIdentity() {
 	const name = getItem("channelName") || "YouTube";
 	const identity = Identity.createWithName(name);
 	const uri = getItem("channelUri");
-	if (uri != null && uri.length > 0) {
+	if (uri != null && String(uri).length > 0) {
 		identity.uri = uri;
 	}
 	identity.avatar = getItem("channelAvatar") || CONNECTOR_ICON;
 	return identity;
 }
 
-// ---------------------------------------------------------------------------
-// URL resolution: playlist / channel / feed → Atom feed URL
-// ---------------------------------------------------------------------------
-
 function normalizeYouTubeUrl(input) {
-	let url = input.trim();
+	let url = String(input).trim();
 
 	if (url.includes("/feeds/videos.xml")) {
 		if (!url.startsWith("http")) {
@@ -77,15 +72,23 @@ function normalizeYouTubeUrl(input) {
 }
 
 function extractPlaylistId(url) {
-	const listMatch = url.match(/[?&]list=([A-Za-z0-9_-]+)/);
+	const listMatch = String(url).match(/[?&]list=([A-Za-z0-9_-]+)/);
 	if (listMatch) {
 		return listMatch[1];
 	}
-	const feedMatch = url.match(/playlist_id=([A-Za-z0-9_-]+)/);
+	const feedMatch = String(url).match(/playlist_id=([A-Za-z0-9_-]+)/);
 	if (feedMatch) {
 		return feedMatch[1];
 	}
 	return null;
+}
+
+function rememberPlaylistId(url) {
+	const playlistId = extractPlaylistId(url);
+	if (playlistId != null) {
+		setItem("playlistId", playlistId);
+	}
+	return playlistId;
 }
 
 async function resolveChannelId(url) {
@@ -121,23 +124,15 @@ async function resolveChannelId(url) {
 
 async function getFeedUrl() {
 	const cached = getItem("feedUrl");
-	if (cached != null && cached.length > 0) {
-		if (getItem("playlistId") == null || getItem("playlistId").length == 0) {
-			const cachedPlaylistId = extractPlaylistId(cached);
-			if (cachedPlaylistId != null) {
-				setItem("playlistId", cachedPlaylistId);
-			}
-		}
+	if (cached != null && String(cached).length > 0) {
+		rememberPlaylistId(cached);
 		return cached;
 	}
 
 	const url = normalizeYouTubeUrl(site);
 
 	if (url.includes("/feeds/videos.xml")) {
-		const playlistId = extractPlaylistId(url);
-		if (playlistId != null) {
-			setItem("playlistId", playlistId);
-		}
+		rememberPlaylistId(url);
 		setItem("feedUrl", url);
 		return url;
 	}
@@ -160,23 +155,26 @@ async function getFeedUrl() {
 
 function feedBaseUrl(jsonObject) {
 	const feedAttributes = jsonObject.feed.link$attrs;
-	const list = (feedAttributes instanceof Array || Array.isArray(feedAttributes))
-		? feedAttributes
-		: (feedAttributes != null ? [feedAttributes] : []);
-	for (const feedAttribute of list) {
-		if (feedAttribute != null && feedAttribute.rel == "alternate") {
-			return feedAttribute.href;
+	if (feedAttributes instanceof Array) {
+		for (const feedAttribute of feedAttributes) {
+			if (feedAttribute.rel == "alternate") {
+				return feedAttribute.href;
+			}
 		}
+		return null;
+	}
+	if (feedAttributes != null && feedAttributes.rel == "alternate") {
+		return feedAttributes.href;
 	}
 	return null;
 }
 
 function extractAvatarFromHtml(html) {
-	const imageSrc = html.match(avatarRegex);
+	const imageSrc = String(html).match(avatarRegex);
 	if (imageSrc) {
 		return imageSrc[1];
 	}
-	const ogImage = html.match(ogImageRegex);
+	const ogImage = String(html).match(ogImageRegex);
 	if (ogImage) {
 		return ogImage[1];
 	}
@@ -185,7 +183,7 @@ function extractAvatarFromHtml(html) {
 
 async function verify() {
 	const feedUrl = await getFeedUrl();
-	const xml = await sendRequest(feedUrl, "GET", null, extraHeaders);
+	const xml = await sendRequest(feedUrl);
 	const jsonObject = await xmlParse(xml);
 
 	if (jsonObject.feed == null) {
@@ -234,76 +232,99 @@ async function verify() {
 	});
 }
 
-// Parse YouTube Atom entries directly from XML. More reliable than xmlParse for
-// repeated <entry> nodes in playlist feeds.
+function countVideoIds(xml) {
+	const matches = String(xml).match(/<yt:videoId>/g);
+	return matches == null ? 0 : matches.length;
+}
+
+// indexOf parser — avoids JSCore global-regex edge cases on large Atom payloads.
 function entriesFromAtomXml(xml) {
+	const source = String(xml);
 	const entries = [];
-	const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
-	let match;
-	while ((match = entryRegex.exec(xml)) != null) {
-		const block = match[1];
+	let cursor = 0;
+
+	while (true) {
+		const start = source.indexOf("<entry>", cursor);
+		if (start < 0) {
+			break;
+		}
+		const end = source.indexOf("</entry>", start);
+		if (end < 0) {
+			break;
+		}
+		const block = source.substring(start + 7, end);
+		cursor = end + 8;
+
 		const videoIdMatch = block.match(/<yt:videoId>([^<]+)<\/yt:videoId>/);
 		if (videoIdMatch == null) {
 			continue;
 		}
+
 		const videoId = videoIdMatch[1];
 		const titleMatch = block.match(/<media:title>([\s\S]*?)<\/media:title>/) || block.match(/<title>([\s\S]*?)<\/title>/);
 		const publishedMatch = block.match(/<published>([^<]+)<\/published>/);
+		const updatedMatch = block.match(/<updated>([^<]+)<\/updated>/);
 		const descriptionMatch = block.match(/<media:description>([\s\S]*?)<\/media:description>/);
 		const thumbMatch = block.match(/<media:thumbnail\b[^>]*\burl="([^"]+)"/);
-		const widthMatch = block.match(/<media:thumbnail\b[^>]*\bwidth="([^"]+)"/);
-		const heightMatch = block.match(/<media:thumbnail\b[^>]*\bheight="([^"]+)"/);
 
 		entries.push({
 			videoId: videoId,
 			title: decodeXmlEntities(titleMatch ? titleMatch[1] : videoId),
-			published: publishedMatch ? publishedMatch[1] : null,
+			published: publishedMatch ? publishedMatch[1] : (updatedMatch ? updatedMatch[1] : null),
 			description: decodeXmlEntities(descriptionMatch ? descriptionMatch[1] : null),
-			thumbnailUrl: thumbMatch ? thumbMatch[1] : (`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`),
-			thumbnailWidth: widthMatch ? Number(widthMatch[1]) : 480,
-			thumbnailHeight: heightMatch ? Number(heightMatch[1]) : 360
+			thumbnailUrl: thumbMatch ? thumbMatch[1] : ("https://i.ytimg.com/vi/" + videoId + "/hqdefault.jpg")
+		});
+	}
+
+	return entries;
+}
+
+function entriesFromParsedFeed(jsonObject) {
+	if (jsonObject == null || jsonObject.feed == null || jsonObject.feed.entry == null) {
+		return [];
+	}
+	const entry = jsonObject.feed.entry;
+	const list = (entry instanceof Array) ? entry : [entry];
+	const entries = [];
+	for (const item of list) {
+		const videoId = item["yt:videoId"];
+		if (videoId == null) {
+			continue;
+		}
+		const mediaGroup = item["media:group"];
+		const thumbAttrs = mediaGroup != null ? mediaGroup["media:thumbnail$attrs"] : null;
+		entries.push({
+			videoId: videoId,
+			title: mediaGroup != null ? mediaGroup["media:title"] : item.title,
+			published: item.published || item.updated || null,
+			description: mediaGroup != null ? mediaGroup["media:description"] : null,
+			thumbnailUrl: (thumbAttrs != null && thumbAttrs.url != null)
+				? thumbAttrs.url
+				: ("https://i.ytimg.com/vi/" + videoId + "/hqdefault.jpg")
 		});
 	}
 	return entries;
 }
 
-function itemUriForVideo(videoId) {
-	// Include list= so these items do not collide with the same watch URLs from
-	// the built-in YouTube Channel connector (Tapestry keys items by URI).
+function itemUriForVideo(videoId, index) {
 	const playlistId = getItem("playlistId");
-	if (playlistId != null && playlistId.length > 0) {
-		return `https://www.youtube.com/watch?v=${videoId}&list=${playlistId}`;
+	if (playlistId != null && String(playlistId).length > 0) {
+		// Unique per playlist membership so items are not collapsed against the
+		// built-in YouTube Channel connector's watch?v= URIs.
+		return "https://www.youtube.com/watch?v=" + videoId + "&list=" + playlistId + "&index=" + String(index + 1);
 	}
-	return `https://www.youtube.com/watch?v=${videoId}`;
-}
-
-function truncatePlainText(text, maxChars) {
-	const normalized = text.replace(/\s+/g, " ").trim();
-	if (normalized.length <= maxChars) {
-		return normalized;
-	}
-	const slice = normalized.slice(0, maxChars);
-	const lastSpace = slice.lastIndexOf(" ");
-	const clipped = lastSpace > 80 ? slice.slice(0, lastSpace) : slice;
-	return clipped.replace(/[.,;:!?-]*$/, "") + "…";
+	return "https://www.youtube.com/watch?v=" + videoId;
 }
 
 function descriptionMode() {
 	if (typeof descriptionLength !== "undefined" && descriptionLength != null && String(descriptionLength).length > 0) {
 		return String(descriptionLength).trim();
 	}
-	if (typeof includeDescription !== "undefined" && includeDescription == "off") {
-		return "Off";
-	}
-	if (typeof truncateDescription !== "undefined" && truncateDescription == "off" &&
-		typeof includeDescription !== "undefined" && includeDescription == "on") {
-		return "Full";
-	}
 	return "Short";
 }
 
 function formatDescription(rawDescription) {
-	if (rawDescription == null || rawDescription.length === 0) {
+	if (rawDescription == null || String(rawDescription).length === 0) {
 		return null;
 	}
 
@@ -313,96 +334,108 @@ function formatDescription(rawDescription) {
 	}
 
 	let text = String(rawDescription);
-	if (mode == "Short" || mode == "short" || mode == "Truncate") {
+	if (mode != "Full" && mode != "full") {
 		const firstParagraph = text.split(/\n\n+/)[0] || text;
-		text = truncatePlainText(firstParagraph, SHORT_DESCRIPTION_CHARS);
-		const linked = text.replace(urlRegex, "<a href=\"$1\">$1</a>");
-		return `<p>${linked}</p>`;
+		const normalized = firstParagraph.replace(/\s+/g, " ").trim();
+		if (normalized.length > SHORT_DESCRIPTION_CHARS) {
+			const slice = normalized.slice(0, SHORT_DESCRIPTION_CHARS);
+			const lastSpace = slice.lastIndexOf(" ");
+			const clipped = lastSpace > 80 ? slice.slice(0, lastSpace) : slice;
+			text = clipped.replace(/[.,;:!?-]*$/, "") + "…";
+		}
+		else {
+			text = normalized;
+		}
+		return "<p>" + text.replace(urlRegex, "<a href=\"$1\">$1</a>") + "</p>";
 	}
 
 	const linkedDescription = text.replace(urlRegex, "<a href=\"$1\">$1</a>");
 	const paragraphs = linkedDescription.split("\n\n");
 	return paragraphs.map((paragraph) => {
 		const lines = paragraph.split("\n");
-		const breakLines = lines.join("<br/>");
-		return `<p>${breakLines}</p>`;
+		return "<p>" + lines.join("<br/>") + "</p>";
 	}).join("\n");
 }
 
 function embedHost() {
-	return privacyEnhanced != "off"
-		? "https://www.youtube-nocookie.com"
-		: "https://www.youtube.com";
+	return (typeof privacyEnhanced !== "undefined" && privacyEnhanced == "off")
+		? "https://www.youtube.com"
+		: "https://www.youtube-nocookie.com";
 }
 
 function buildEmbedHtml(videoId) {
-	const params = [
-		"playsinline=1",
-		"rel=0",
-		"modestbranding=1",
-		"iv_load_policy=3",
-		"fs=1"
-	].join("&");
-	const src = `${embedHost()}/embed/${videoId}?${params}`;
-	return `<iframe id="player-${videoId}" type="text/html" width="640" height="390" src="${src}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen playsinline></iframe>`;
-}
-
-function buildItem(entry) {
-	const videoId = entry.videoId;
-	if (videoId == null) {
-		return null;
-	}
-
-	const date = entry.published != null ? new Date(entry.published) : new Date();
-	if (isNaN(date.getTime())) {
-		return null;
-	}
-
-	const title = entry.title || videoId;
-	const uri = itemUriForVideo(videoId);
-	const description = formatDescription(entry.description);
-	const embed = buildEmbedHtml(videoId);
-
-	const resultItem = Item.createWithUriDate(uri, date);
-	resultItem.title = title;
-	resultItem.body = description != null ? embed + description : embed;
-	resultItem.author = createFeedIdentity();
-
-	const media = MediaAttachment.createWithUrl(entry.thumbnailUrl || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`);
-	media.mimeType = "image/jpeg";
-	media.text = title;
-	if (entry.thumbnailWidth != null && entry.thumbnailHeight != null) {
-		media.aspectSize = {width: entry.thumbnailWidth, height: entry.thumbnailHeight};
-	}
-	resultItem.attachments = [media];
-
-	return resultItem;
+	const src = embedHost() + "/embed/" + videoId + "?playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&fs=1";
+	return "<iframe id=\"player-" + videoId + "\" type=\"text/html\" width=\"640\" height=\"390\" src=\"" + src + "\" title=\"YouTube video player\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\" referrerpolicy=\"strict-origin-when-cross-origin\" allowfullscreen playsinline></iframe>";
 }
 
 async function load() {
 	const feedUrl = await getFeedUrl();
-	const xml = await sendRequest(feedUrl, "GET", null, extraHeaders);
+	rememberPlaylistId(feedUrl);
 
-	// Always parse entries from raw Atom XML for playlists/channels.
-	const allEntries = entriesFromAtomXml(xml);
-	allEntries.sort((a, b) => {
-		const aDate = new Date(a.published || 0).getTime();
-		const bDate = new Date(b.published || 0).getTime();
-		return bDate - aDate;
-	});
+	// Match stock com.youtube: plain sendRequest (no custom headers) for the Atom feed.
+	const xml = await sendRequest(feedUrl);
+	const xmlText = String(xml);
+	const xmlIdCount = countVideoIds(xmlText);
 
-	const results = [];
+	let entries = entriesFromAtomXml(xmlText);
+
+	// Also try xmlParse; keep whichever yields more entries.
+	try {
+		const jsonObject = await xmlParse(xmlText);
+		const parsed = entriesFromParsedFeed(jsonObject);
+		if (parsed.length > entries.length) {
+			entries = parsed;
+		}
+	}
+	catch (e) {
+		// Raw Atom parse is enough.
+	}
+
+	entries.sort((a, b) => new Date(b.published || 0) - new Date(a.published || 0));
+
+	var results = [];
 	const seen = {};
-	for (const entry of allEntries) {
-		if (entry.videoId == null || seen[entry.videoId] == true) {
+	for (var i = 0; i < entries.length; i++) {
+		const entry = entries[i];
+		const videoId = entry.videoId;
+		if (videoId == null || seen[videoId] == true) {
 			continue;
 		}
-		seen[entry.videoId] = true;
+		seen[videoId] = true;
 
-		const resultItem = buildItem(entry);
-		if (resultItem != null) {
-			results.push(resultItem);
+		const date = entry.published != null ? new Date(entry.published) : new Date();
+		if (isNaN(date.getTime())) {
+			continue;
 		}
+
+		const title = entry.title || videoId;
+		const uri = itemUriForVideo(videoId, results.length);
+		const description = formatDescription(entry.description);
+		const embed = buildEmbedHtml(videoId);
+
+		const resultItem = Item.createWithUriDate(uri, date);
+		resultItem.title = title;
+		resultItem.body = description != null ? (embed + description) : embed;
+		resultItem.author = createFeedIdentity();
+
+		// Thumbnail for the timeline; detail view uses the iframe embed.
+		const media = MediaAttachment.createWithUrl(entry.thumbnailUrl || ("https://i.ytimg.com/vi/" + videoId + "/hqdefault.jpg"));
+		media.mimeType = "image/jpeg";
+		media.text = title;
+		resultItem.attachments = [media];
+
+		results.push(resultItem);
+	}
+
+	if (results.length > 0) {
+		// Visible diagnostic: if this says 15 but the feed still shows 1, the app is
+		// filtering after import (age/dedupe). If it says 1, parsing/network is at fault.
+		const note = Annotation.createWithText("Loaded " + results.length + " of " + xmlIdCount + " feed videos");
+		results[0].annotations = [note];
+	}
+	else if (xmlIdCount > 0) {
+		processError(Error("Found " + xmlIdCount + " videos in the playlist feed but could not build timeline items."));
+		return;
 	}
 
 	processResults(results);

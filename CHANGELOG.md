@@ -4,6 +4,14 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.newtosh.youtube.playlist 0.1.3] - 2026-07-30
+
+### Fixed
+
+- Harden playlist loading: parse Atom `<entry>` blocks with `indexOf` (not global regex), coerce the feed body to a string, and fall back between raw XML and `xmlParse`.
+- Use stock-style `sendRequest(feedUrl)` for the Atom document (custom headers only for HTML avatar pages).
+- Add a visible **Loaded N of M feed videos** annotation on the newest item so we can tell connector parse count from app-side filtering.
+
 ## [com.newtosh.youtube.playlist 0.1.2] - 2026-07-30
 
 ### Fixed
