@@ -47,15 +47,6 @@ function createFeedIdentity() {
 	return identity;
 }
 
-function createAuthorIdentity(authorName) {
-	if (authorName == null || authorName.length === 0 || authorName === "Cool Material") {
-		return null;
-	}
-	const identity = Identity.createWithName(authorName);
-	identity.uri = COOL_MATERIAL_BASE_URL;
-	return identity;
-}
-
 async function verify() {
 	const response = await sendRequest(site, "GET", null, {"user-agent": userAgent});
 	const jsonObject = await xmlParse(response);
@@ -193,7 +184,6 @@ function buildStealItem(feedItem) {
 		}]);
 	}
 
-	const authorName = formatAuthorName(item["dc:creator"]);
 	const resultItem = Item.createWithUriDate(url, feedItem.date);
 	if (title != null) {
 		resultItem.title = title;
@@ -201,10 +191,7 @@ function buildStealItem(feedItem) {
 	if (content != null && content.length > 0) {
 		resultItem.body = content;
 	}
-	const author = createAuthorIdentity(authorName);
-	if (author != null) {
-		resultItem.author = author;
-	}
+	resultItem.author = createFeedIdentity();
 	resultItem.annotations = [Annotation.createWithText("Steals")];
 
 	const attachments = [];
@@ -261,7 +248,6 @@ async function buildEditorialItem(feedItem) {
 		}
 	}
 
-	const authorName = formatAuthorName(item["dc:creator"]);
 	const resultItem = Item.createWithUriDate(url, feedItem.date);
 	if (title != null) {
 		resultItem.title = title;
@@ -269,14 +255,18 @@ async function buildEditorialItem(feedItem) {
 	if (content != null && content.length > 0) {
 		resultItem.body = content;
 	}
-	const author = createAuthorIdentity(authorName);
-	if (author != null) {
-		resultItem.author = author;
-	}
+	resultItem.author = createFeedIdentity();
 
+	const annotations = [];
+	if (authorName != null && authorName.length > 0 && authorName !== "Cool Material") {
+		annotations.push(Annotation.createWithText(`by ${authorName}`));
+	}
 	const category = pickEditorialCategory(item.category);
 	if (category != null) {
-		resultItem.annotations = [Annotation.createWithText(category)];
+		annotations.push(Annotation.createWithText(category));
+	}
+	if (annotations.length > 0) {
+		resultItem.annotations = annotations;
 	}
 
 	const attachments = [];

@@ -22,15 +22,6 @@ function createFeedIdentity() {
 	return identity;
 }
 
-function createAuthorIdentity(authorName) {
-	if (authorName == null || authorName.length === 0) {
-		return null;
-	}
-	const identity = Identity.createWithName(authorName);
-	identity.uri = GEAR_PATROL_BASE_URL;
-	return identity;
-}
-
 async function verify() {
 	const response = await sendRequest(site, "GET", null, {"user-agent": userAgent});
 	const jsonObject = await xmlParse(response);
@@ -106,14 +97,18 @@ async function load() {
 			if (content != null && content.length > 0) {
 				resultItem.body = content;
 			}
-			const author = createAuthorIdentity(authorName);
-			if (author != null) {
-				resultItem.author = author;
-			}
+			resultItem.author = createFeedIdentity();
 
+			const annotations = [];
+			if (authorName != null && authorName.length > 0) {
+				annotations.push(Annotation.createWithText(`by ${authorName}`));
+			}
 			const category = formatCategory(item.category);
 			if (category != null) {
-				resultItem.annotations = [Annotation.createWithText(category)];
+				annotations.push(Annotation.createWithText(category));
+			}
+			if (annotations.length > 0) {
+				resultItem.annotations = annotations;
 			}
 
 			const attachments = [];
