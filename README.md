@@ -26,14 +26,9 @@ Inspired by [chockenberry/TapestryConnectors](https://github.com/chockenberry/Ta
 
 ## Publishing a release
 
-Releases are built automatically by GitHub Actions when you push a version tag:
+Merging a PR into `main` automatically runs the **Release** workflow: it package every connector from `Makefile`, auto-bumps the patch on the latest `v*` tag (e.g. `v0.3.4` → `v0.3.5`), and publishes a GitHub release with the `.tapestry` artifacts.
 
-```bash
-git tag v0.1.8
-git push origin v0.1.8
-```
-
-Or run the **Release** workflow manually from the repository's **Actions** tab (provide a tag name such as `v0.1.8`). The workflow packages every connector in `Makefile` and attaches the `.tapestry` files to the GitHub release page.
+You can also run **Release** manually from the repository's **Actions** tab (optionally pass an explicit tag such as `v0.4.0` for a minor/major bump).
 
 ## Development (Mac mini + Loom)
 
