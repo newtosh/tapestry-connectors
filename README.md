@@ -26,7 +26,7 @@ Inspired by [chockenberry/TapestryConnectors](https://github.com/chockenberry/Ta
 
 ## Publishing a release
 
-Merging a PR into `main` automatically runs the **Release** workflow: it package every connector from `Makefile`, auto-bumps the patch on the latest `v*` tag (e.g. `v0.3.4` → `v0.3.5`), and publishes a GitHub release with the `.tapestry` artifacts.
+Merging a PR into `main` automatically runs the **Release** workflow: it packages every connector from `Makefile`, auto-bumps the patch on the latest `v*` tag (e.g. `v0.3.4` → `v0.3.5`), and publishes a GitHub release with the `.tapestry` artifacts.
 
 You can also run **Release** manually from the repository's **Actions** tab (optionally pass an explicit tag such as `v0.4.0` for a minor/major bump).
 
