@@ -144,16 +144,15 @@ async function enrichResults(results, enrichTargets, token) {
 		}
 
 		const row = results[target.index];
-		const attachments = [];
-		const thumb = httpsUrl(post.thumbnailUrl);
-		if (thumb != null) {
-			attachments.push(MediaAttachment.createWithUrl(thumb));
-		}
+		// PH's GraphQL Media/thumbnail types expose no width/height, so stacking
+		// both as separate attachments renders as cramped, unsized thumbnails.
+		// Use one hero image: prefer the gallery/media shot over the thumbnail.
 		const gallery = httpsUrl(post.galleryUrl);
-		if (gallery != null && gallery !== thumb) {
-			attachments.push(MediaAttachment.createWithUrl(gallery));
-		}
-		if (attachments.length > 0) {
+		const thumb = httpsUrl(post.thumbnailUrl);
+		const hero = gallery != null ? gallery : thumb;
+		const attachments = [];
+		if (hero != null) {
+			attachments.push(MediaAttachment.createWithUrl(hero));
 			row.item.attachments = attachments;
 		}
 
