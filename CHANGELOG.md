@@ -22,6 +22,10 @@ Older entries below use per-connector headings and remain as history.
 
 ## [Unreleased]
 
+### Added
+
+- New **Product Hunt** connector (`com.producthunt.feed`) for topic Atom feeds (default `tech`): branded **PH** icon, launch cards with tagline/maker/links, and optional Developer Token enrichment for thumbnail + first gallery image via GraphQL (no product HTML scraping; feed-only fallback on 429/errors).
+
 ## [0.3.6] - 2026-08-01
 
 ### Added

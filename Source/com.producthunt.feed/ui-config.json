@@ -1,0 +1,18 @@
+{
+	"inputs": [
+		{
+			"name": "topic",
+			"type": "text",
+			"prompt": "Topic slug",
+			"value": "tech",
+			"placeholder": "Product Hunt topic slug (default: tech)"
+		},
+		{
+			"name": "developerToken",
+			"type": "text",
+			"prompt": "Developer Token",
+			"value": "",
+			"placeholder": "Optional Product Hunt Developer Token for screenshots"
+		}
+	]
+}
