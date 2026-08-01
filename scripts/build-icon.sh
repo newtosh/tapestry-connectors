@@ -13,7 +13,6 @@ if [[ ! -f "$VERSION_FILE" ]]; then
 	exit 1
 fi
 
-BG_RGB="${ICON_BG_RGB:-18,18,18}"
 SIZE="${ICON_SIZE:-180}"
 ICON_SHAPE="${ICON_SHAPE:-circle}"
 
@@ -28,6 +27,8 @@ ICON_TEXT="$(read_version_field icon_text)"
 ICON_TEXT_SCALE="$(read_version_field icon_text_scale 0.62)"
 LOGO_SCALE="$(read_version_field logo_scale 0.72)"
 LOGO_CROP="$(read_version_field logo_crop false)"
+VERSION_BG_RGB="$(read_version_field icon_bg_rgb 18,18,18)"
+BG_RGB="${ICON_BG_RGB:-$VERSION_BG_RGB}"
 
 if [[ -z "$LOGO_URL" && -z "$ICON_TEXT" ]]; then
 	echo "Missing logo_url or icon_text in $VERSION_FILE" >&2

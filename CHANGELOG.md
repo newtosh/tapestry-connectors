@@ -22,7 +22,18 @@ Older entries below use per-connector headings and remain as history.
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-08-01
+
+### Added
+
+- New **Reactor** connector (`com.reactor.feed`) for [reactormag.com](https://reactormag.com/feed/): branded red **R** icon, cleaned article bodies (WordPress `<post-hero>` chrome removed), dek, writer bylines, and hero images.
+
+### Fixed
+
+- Reactor feed loading falls back to a normal GET when the conditional request returns empty, so timeline items are not wiped after connector upgrades.
+
 ## [0.3.5] - 2026-08-01
+
 
 ### Added
 
@@ -32,6 +43,32 @@ Older entries below use per-connector headings and remain as history.
 ### Changed
 
 - Release workflow reads the connector list from `Makefile` instead of a hardcoded copy.
+
+## [com.reactor.feed 0.1.3] - 2026-08-01
+
+### Changed
+
+- Point the hosted icon URL at `main` so the post-merge release matches other connectors.
+
+## [com.reactor.feed 0.1.2] - 2026-08-01
+
+### Fixed
+
+- Restore a hosted HTTPS icon URL (data URIs break Loom runtime avatars/feed loading — same lesson as Polygon).
+- Fall back to a normal GET when the conditional feed request returns empty so items do not disappear after upgrades.
+
+## [com.reactor.feed 0.1.1] - 2026-08-01
+
+### Fixed
+
+- Attempted data-URI icon embed so Loom could show branding before the PNG existed on `main` (reverted in 0.1.2).
+
+## [com.reactor.feed 0.1.0] - 2026-08-01
+
+### Added
+
+- New **Reactor** connector (`com.reactor.feed`) for [reactormag.com](https://reactormag.com/feed/) with a branded icon, cleaned article bodies, dek, writer bylines, and hero images.
+- Strip WordPress `<post-hero>` chrome (repeated title/byline/date, share/comment controls, duplicate image captions) that the generic Blog Feed dumps into the timeline.
 
 ## [com.newtosh.youtube.playlist 0.1.4] - 2026-07-30
 

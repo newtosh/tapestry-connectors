@@ -1,0 +1,8 @@
+{
+  "semver": "0.1.3",
+  "tapestry_version": 4,
+  "icon_url": "https://raw.githubusercontent.com/newtosh/tapestry-connectors/refs/heads/main/Source/com.reactor.feed/icon.png",
+  "icon_text": "R",
+  "icon_text_scale": 0.62,
+  "icon_bg_rgb": "187,64,45"
+}

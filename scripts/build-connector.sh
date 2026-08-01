@@ -21,6 +21,8 @@ from pathlib import Path
 connector_dir = Path("$CONNECTOR_DIR")
 version = json.loads((connector_dir / "version.json").read_text())
 tapestry_version = int(version["tapestry_version"])
+# Loom/Tapestry needs a hosted HTTPS icon URL at runtime — data URIs are not
+# applied for verify()/avatars and can break feed loading.
 base_icon_url = version["icon_url"].split("?")[0]
 icon_url = f"{base_icon_url}?v={tapestry_version}"
 
