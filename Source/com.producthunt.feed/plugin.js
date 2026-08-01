@@ -114,17 +114,12 @@ async function load() {
 	}
 
 	const token = developerTokenValue();
-	let debugNote = "token.length=" + token.length + " enrichTargets=" + enrichTargets.length + " (skipped)";
 	if (token.length > 0 && enrichTargets.length > 0) {
 		try {
-			debugNote = await enrichResults(results, enrichTargets, token);
+			await enrichResults(results, enrichTargets, token);
 		} catch (e) {
-			debugNote = "threw: " + String(e && e.message ? e.message : e);
+			// Feed-first: enrichment must never blank the timeline.
 		}
-	}
-	for (const row of results) {
-		const existing = row.item.body != null ? String(row.item.body) : "";
-		row.item.body = "<p>[PH DEBUG] " + escapeHtml(debugNote) + "</p>\n" + existing;
 	}
 
 	const items = [];
@@ -136,13 +131,11 @@ async function load() {
 
 async function enrichResults(results, enrichTargets, token) {
 	const capped = enrichTargets.slice(0, MAX_ENRICH_IDS);
-	const fetchResult = await fetchPostsByIds(capped.map((t) => t.postId), token);
-	const enrichment = fetchResult.byId;
+	const enrichment = await fetchPostsByIds(capped.map((t) => t.postId), token);
 	if (enrichment == null) {
-		return "capped=" + capped.length + " " + fetchResult.debug;
+		return;
 	}
 
-	let attached = 0;
 	for (let i = 0; i < capped.length; i++) {
 		const target = capped[i];
 		const post = enrichment[target.postId];
@@ -151,16 +144,15 @@ async function enrichResults(results, enrichTargets, token) {
 		}
 
 		const row = results[target.index];
-		const attachments = [];
-		const thumb = httpsUrl(post.thumbnailUrl);
-		if (thumb != null) {
-			attachments.push(MediaAttachment.createWithUrl(thumb));
-		}
+		// PH's GraphQL Media/thumbnail types expose no width/height, so stacking
+		// both as separate attachments renders as cramped, unsized thumbnails.
+		// Use one hero image: prefer the gallery/media shot over the thumbnail.
 		const gallery = httpsUrl(post.galleryUrl);
-		if (gallery != null && gallery !== thumb) {
-			attachments.push(MediaAttachment.createWithUrl(gallery));
-		}
-		if (attachments.length > 0) {
+		const thumb = httpsUrl(post.thumbnailUrl);
+		const hero = gallery != null ? gallery : thumb;
+		const attachments = [];
+		if (hero != null) {
+			attachments.push(MediaAttachment.createWithUrl(hero));
 			row.item.attachments = attachments;
 		}
 
@@ -169,16 +161,12 @@ async function enrichResults(results, enrichTargets, token) {
 			const existing = row.item.body != null ? String(row.item.body) : (row.body || "");
 			row.item.body = existing.length > 0 ? (meta + "\n" + existing) : meta;
 		}
-		if (attachments.length > 0) {
-			attached++;
-		}
 	}
-	return "capped=" + capped.length + " attached=" + attached + " " + fetchResult.debug;
 }
 
 async function fetchPostsByIds(postIds, token) {
 	if (postIds.length === 0) {
-		return {byId: {}, debug: "no postIds"};
+		return {};
 	}
 
 	const aliases = [];
@@ -204,29 +192,29 @@ async function fetchPostsByIds(postIds, token) {
 	try {
 		response = await sendRequest(PRODUCTHUNT_GRAPHQL, "POST", body, headers, true);
 	} catch (e) {
-		return {byId: null, debug: "sendRequest threw: " + String(e && e.message ? e.message : e)};
+		return null;
 	}
 
 	const parsed = parseFullResponse(response);
 	if (parsed == null) {
-		return {byId: null, debug: "parseFullResponse null; raw=" + String(response).slice(0, 200)};
+		return null;
 	}
 	if (parsed.status === 429) {
-		return {byId: null, debug: "status=429"};
+		return null;
 	}
 	if (parsed.status != null && parsed.status >= 400) {
-		return {byId: null, debug: "status=" + parsed.status + " body=" + parsed.body.slice(0, 200)};
+		return null;
 	}
 
 	let json;
 	try {
 		json = JSON.parse(parsed.body);
 	} catch (e) {
-		return {byId: null, debug: "JSON.parse failed; body=" + parsed.body.slice(0, 200)};
+		return null;
 	}
 
 	if (json == null || json.data == null) {
-		return {byId: null, debug: "no data; body=" + parsed.body.slice(0, 200)};
+		return null;
 	}
 
 	const byId = {};
@@ -243,7 +231,7 @@ async function fetchPostsByIds(postIds, token) {
 			dailyRank: node.dailyRank
 		};
 	}
-	return {byId: byId, debug: "status=" + parsed.status + " nodes=" + Object.keys(byId).length};
+	return byId;
 }
 
 function parseFullResponse(response) {
