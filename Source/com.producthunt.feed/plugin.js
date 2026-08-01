@@ -260,7 +260,9 @@ function parseFullResponse(response) {
 	return null;
 }
 
-const MAX_GALLERY_IMAGES = 3;
+// Tapestry renders 2+ attachments as a tiled mosaic (confirmed empirically;
+// item_style has no effect). Cap at 1 to guarantee a full-width hero image.
+const MAX_GALLERY_IMAGES = 1;
 
 function galleryUrlsFromMedia(media) {
 	if (media == null) {

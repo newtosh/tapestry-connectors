@@ -1,1 +1,1 @@
-https://raw.githubusercontent.com/newtosh/tapestry-connectors/refs/heads/main/Source/com.producthunt.feed/icon.png?v=6
+https://raw.githubusercontent.com/newtosh/tapestry-connectors/refs/heads/main/Source/com.producthunt.feed/icon.png?v=7
