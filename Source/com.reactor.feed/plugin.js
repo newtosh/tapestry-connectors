@@ -33,9 +33,14 @@ async function verify() {
 }
 
 async function load() {
-	const response = await sendConditionalRequest(site, "GET", null, {"user-agent": userAgent});
+	let response = await sendConditionalRequest(site, "GET", null, {"user-agent": userAgent});
+	// Conditional GET can return null/empty after connector upgrades; fall back
+	// so the timeline is not wiped (same pattern as Cool Material).
+	if (response == null || response.length === 0) {
+		response = await sendRequest(site, "GET", null, {"user-agent": userAgent});
+	}
 
-	if (!response) {
+	if (response == null || response.length === 0) {
 		processResults([]);
 		return;
 	}

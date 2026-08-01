@@ -12,7 +12,7 @@ Inspired by [chockenberry/TapestryConnectors](https://github.com/chockenberry/Ta
 | [Uncrate](Source/com.uncrate.feed/) | 0.1.3 | Optimized Uncrate RSS — summaries, purchase links, hero images |
 | [Gear Patrol](Source/com.gearpatrol.feed/) | 0.1.13 | Gear Patrol RSS — summaries, retailer buy links, hero images |
 | [Cool Material](Source/com.coolmaterial.steals.feed/) | 0.2.15 | Editorial + steals — summaries, hero images, buy links, deal prices |
-| [Reactor](Source/com.reactor.feed/) | 0.1.1 | Optimized Reactor Mag RSS — branded icon, cleaned WordPress hero chrome, dek, bylines |
+| [Reactor](Source/com.reactor.feed/) | 0.1.2 | Optimized Reactor Mag RSS — branded icon, cleaned WordPress hero chrome, dek, bylines |
 | [YT Playlist Feed](Source/com.newtosh.youtube.playlist/) | 0.1.4 | Community playlist/channel feeds — in-app privacy-enhanced embeds; separate from built-in YouTube |
 
 ## Install on iOS

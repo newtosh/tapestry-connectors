@@ -15,24 +15,16 @@ fi
 bash "$SCRIPT_DIR/build-icon.sh"
 
 python3 <<PY
-import base64
 import json
 from pathlib import Path
 
 connector_dir = Path("$CONNECTOR_DIR")
 version = json.loads((connector_dir / "version.json").read_text())
 tapestry_version = int(version["tapestry_version"])
-icon_png = connector_dir / "icon.png"
-
-# Embed local PNG when requested (or when icon_url is missing). Useful before the
-# GitHub-hosted icon exists on main, and avoids runtime fetches for avatars.
-if version.get("icon_embed") or not version.get("icon_url"):
-	if not icon_png.is_file():
-		raise SystemExit(f"Missing {icon_png} for embedded icon")
-	icon_url = "data:image/png;base64," + base64.b64encode(icon_png.read_bytes()).decode("ascii")
-else:
-	base_icon_url = version["icon_url"].split("?")[0]
-	icon_url = f"{base_icon_url}?v={tapestry_version}"
+# Loom/Tapestry needs a hosted HTTPS icon URL at runtime — data URIs are not
+# applied for verify()/avatars and can break feed loading.
+base_icon_url = version["icon_url"].split("?")[0]
+icon_url = f"{base_icon_url}?v={tapestry_version}"
 
 resources_dir = connector_dir / "resources"
 resources_dir.mkdir(parents=True, exist_ok=True)
