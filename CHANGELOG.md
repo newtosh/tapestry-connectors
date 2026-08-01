@@ -1,8 +1,37 @@
 # Changelog
 
-All notable changes to connectors in this repo are documented here.
+All notable changes to this project are documented here.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/).
+Release notes are keyed by **repo release version** (the GitHub `v*` tag without the leading `v`). The Release workflow publishes notes from the section that matches the next tag, or from `[Unreleased]` if that section is missing.
+
+Format (Keep a Changelog) — use a real `## [X.Y.Z] - YYYY-MM-DD` heading for each GitHub `vX.Y.Z` release (examples intentionally omit the `##` marker so they are not parsed):
+
+```markdown
+[Unreleased]
+
+Added
+- Notes that will ship in the next auto-release.
+
+[X.Y.Z] - YYYY-MM-DD
+
+Added
+- Notes for that GitHub release.
+```
+
+Older entries below use per-connector headings and remain as history.
+
+## [Unreleased]
+
+## [0.3.5] - 2026-08-01
+
+### Added
+
+- Auto-release on merge to `main` (patch-bump from the latest `v*` tag, or an explicit tag via workflow dispatch).
+- Release notes are parsed from this changelog: the section matching the release version, with fallback to `[Unreleased]`.
+
+### Changed
+
+- Release workflow reads the connector list from `Makefile` instead of a hardcoded copy.
 
 ## [com.reactor.feed 0.1.2] - 2026-08-01
 

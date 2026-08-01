@@ -2,17 +2,20 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag (e.g. v0.1.8)"
-        required: true
+        description: "Optional release tag (e.g. v0.3.5). Leave empty to auto-bump patch from latest v* tag."
+        required: false
         type: string
 
 permissions:
   contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -20,6 +23,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,19 +34,89 @@ jobs:
       - name: Install build dependencies
         run: pip install pillow
 
+      - name: Resolve release tag
+        id: tag
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if [[ -n "${INPUT_TAG:-}" ]]; then
+            TAG="$INPUT_TAG"
+          else
+            LATEST="$(git tag -l 'v*' --sort=-v:refname | head -n 1 || true)"
+            if [[ -z "$LATEST" ]]; then
+              TAG="v0.1.0"
+            else
+              if [[ ! "$LATEST" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+                echo "Latest tag '$LATEST' is not vMAJOR.MINOR.PATCH; pass an explicit tag." >&2
+                exit 1
+              fi
+              MAJOR="${BASH_REMATCH[1]}"
+              MINOR="${BASH_REMATCH[2]}"
+              PATCH="${BASH_REMATCH[3]}"
+              TAG="v${MAJOR}.${MINOR}.$((PATCH + 1))"
+            fi
+          fi
+
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag '$TAG' must look like v0.3.5" >&2
+            exit 1
+          fi
+
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "Tag $TAG already exists; skipping release."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "Resolved release tag: $TAG"
+
       - name: Build and package connectors
+        if: steps.tag.outputs.skip != 'true'
         run: make package
 
       - name: List release artifacts
+        if: steps.tag.outputs.skip != 'true'
         run: ls -lh Downloads/*.tapestry
 
-      - name: Generate release notes
+      - name: Generate release notes from CHANGELOG.md
+        if: steps.tag.outputs.skip != 'true'
         run: |
+          set -euo pipefail
+          TAG="${{ steps.tag.outputs.tag }}"
+
+          if ! CHANGELOG_BODY="$(python3 scripts/extract-changelog-entry.py "$TAG")"; then
+            echo "Warning: no matching CHANGELOG.md section for $TAG; using fallback notes." >&2
+            CHANGELOG_BODY="$(printf '%s\n' \
+              '### Changed' \
+              '' \
+              '- See commits since the previous release.' \
+              '' \
+              '_Add a `## [X.Y.Z]` or `## [Unreleased]` section in CHANGELOG.md for curated notes._')"
+          fi
+
+          CONNECTORS="$(python3 - <<'PY'
+          from pathlib import Path
+          text = Path("Makefile").read_text()
+          for line in text.splitlines():
+              if line.startswith("CONNECTORS :="):
+                  print(line.split(":=", 1)[1].strip())
+                  break
+          else:
+              raise SystemExit("CONNECTORS not found in Makefile")
+          PY
+          )"
+
           {
+            echo "$CHANGELOG_BODY"
+            echo ""
             echo "## Connectors"
             echo ""
-            # Keep in sync with Makefile CONNECTORS
-            for id in com.polygon.feed com.uncrate.feed com.gearpatrol.feed com.coolmaterial.steals.feed com.newtosh.youtube.playlist; do
+            for id in $CONNECTORS; do
               semver=$(python3 -c "import json; print(json.load(open(\"Source/$id/version.json\"))['semver'])")
               tapestry_version=$(python3 -c "import json; print(json.load(open(\"Source/$id/version.json\"))['tapestry_version'])")
               echo "- **${id}** v${semver} (Tapestry version ${tapestry_version})"
@@ -56,11 +131,15 @@ jobs:
             echo "If you already have an older build installed, bumping the Tapestry integer \`version\` in the connector may require removing and reinstalling."
           } > release-notes.md
 
+          echo "----- release-notes.md -----"
+          cat release-notes.md
+
       - name: Publish GitHub release
+        if: steps.tag.outputs.skip != 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
-          name: ${{ github.event.inputs.tag || github.ref_name }}
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
           body_path: release-notes.md
           files: |
             Downloads/com.*-v*.tapestry
