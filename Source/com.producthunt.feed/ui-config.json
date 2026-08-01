@@ -13,6 +13,12 @@
 			"prompt": "Developer Token",
 			"value": "",
 			"placeholder": "Optional Product Hunt Developer Token for screenshots"
+		},
+		{
+			"name": "showTopics",
+			"type": "switch",
+			"prompt": "Show Matched Topic(s)",
+			"value": "off"
 		}
 	]
 }

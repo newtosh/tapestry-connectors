@@ -73,6 +73,10 @@ function developerTokenValue() {
 	return String(developerToken).trim();
 }
 
+function showTopicsEnabled() {
+	return typeof showTopics !== "undefined" && showTopics == "on";
+}
+
 async function verify() {
 	processVerification({
 		displayName: "Product Hunt",
@@ -108,6 +112,9 @@ async function fetchTopicEntries(slug, useConditional) {
 		// Raw Atom parse is enough.
 	}
 
+	for (const entry of entries) {
+		entry.sourceTopic = slug;
+	}
 	return entries;
 }
 
@@ -117,10 +124,18 @@ function mergeEntries(entryLists) {
 	for (const list of entryLists) {
 		for (const entry of list) {
 			const key = entry.postId != null ? "id:" + entry.postId : "url:" + entry.link;
-			if (key == null || seen[key]) {
+			if (key == null) {
 				continue;
 			}
-			seen[key] = true;
+			const existing = seen[key];
+			if (existing != null) {
+				if (existing.topics.indexOf(entry.sourceTopic) < 0) {
+					existing.topics.push(entry.sourceTopic);
+				}
+				continue;
+			}
+			entry.topics = [entry.sourceTopic];
+			seen[key] = entry;
 			merged.push(entry);
 		}
 	}
@@ -163,6 +178,10 @@ async function load() {
 		}
 
 		let body = buildEntryBody(entry);
+		if (showTopicsEnabled() && entry.topics != null && entry.topics.length > 0) {
+			const topicsLine = "<p><em>Topics: " + escapeHtml(entry.topics.join(", ")) + "</em></p>";
+			body = body != null && body.length > 0 ? (body + "\n" + topicsLine) : topicsLine;
+		}
 		const resultItem = Item.createWithUriDate(url, date);
 		if (title != null && title.length > 0) {
 			resultItem.title = title;
