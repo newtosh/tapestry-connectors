@@ -1,6 +1,6 @@
 .PHONY: help build build-all package package-all
 
-CONNECTORS := com.polygon.feed com.uncrate.feed com.gearpatrol.feed com.coolmaterial.steals.feed com.newtosh.youtube.playlist
+CONNECTORS := com.polygon.feed com.uncrate.feed com.gearpatrol.feed com.coolmaterial.steals.feed com.reactor.feed com.newtosh.youtube.playlist
 
 help:
 	@echo "Tapestry Connectors"

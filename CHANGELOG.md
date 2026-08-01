@@ -4,6 +4,13 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.reactor.feed 0.1.0] - 2026-08-01
+
+### Added
+
+- New **Reactor** connector (`com.reactor.feed`) for [reactormag.com](https://reactormag.com/feed/) with a branded icon, cleaned article bodies, dek, writer bylines, and hero images.
+- Strip WordPress `<post-hero>` chrome (repeated title/byline/date, share/comment controls, duplicate image captions) that the generic Blog Feed dumps into the timeline.
+
 ## [com.newtosh.youtube.playlist 0.1.4] - 2026-07-30
 
 ### Changed
