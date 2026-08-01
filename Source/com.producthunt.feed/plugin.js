@@ -115,7 +115,11 @@ async function load() {
 
 	const token = developerTokenValue();
 	if (token.length > 0 && enrichTargets.length > 0) {
-		await enrichResults(results, enrichTargets, token);
+		try {
+			await enrichResults(results, enrichTargets, token);
+		} catch (e) {
+			// Feed-first: enrichment must never blank the timeline.
+		}
 	}
 
 	const items = [];
@@ -235,7 +239,21 @@ function parseFullResponse(response) {
 	if (response == null) {
 		return null;
 	}
+	// Tapestry fullResponse resolves to a JSON string envelope:
+	// { status, headers, url, body }.
 	if (typeof response === "string") {
+		try {
+			const envelope = JSON.parse(response);
+			if (envelope != null && typeof envelope === "object" && envelope.body != null) {
+				return {
+					status: envelope.status != null ? Number(envelope.status) : 200,
+					headers: envelope.headers || {},
+					body: String(envelope.body)
+				};
+			}
+		} catch (e) {
+			// Fall through: treat as raw GraphQL body (non-fullResponse path).
+		}
 		return {status: 200, headers: {}, body: response};
 	}
 	if (typeof response === "object") {

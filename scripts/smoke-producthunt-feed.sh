@@ -38,6 +38,25 @@ if any(t is None for t in titles):
 print(f"ok feed entries={len(entries)} atom_post_ids={atom_ids} rp_ids={rp_ids}")
 PY
 
+# Fixture: connector must unwrap Tapestry fullResponse JSON envelope before GraphQL parse.
+python3 <<'PY'
+import json
+
+envelope = {
+    "status": 200,
+    "headers": {"x-rate-limit-remaining": "6000"},
+    "body": json.dumps({"data": {"p0": {"id": "1", "thumbnail": {"url": "https://example.com/a.png"}, "media": []}}}),
+}
+text = json.dumps(envelope)
+parsed = json.loads(text)
+assert isinstance(parsed, dict) and "body" in parsed
+inner = json.loads(parsed["body"])
+assert inner["data"]["p0"]["thumbnail"]["url"].startswith("https://")
+# Mis-parse path that treats the envelope string as GraphQL body has no .data
+assert "data" not in parsed
+print("ok fullResponse envelope contract")
+PY
+
 if [[ -n "${PRODUCTHUNT_TOKEN:-}" ]]; then
 	python3 - "$TMP" <<'PY'
 import json
