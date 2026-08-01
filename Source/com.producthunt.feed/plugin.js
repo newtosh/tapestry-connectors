@@ -144,15 +144,12 @@ async function enrichResults(results, enrichTargets, token) {
 		}
 
 		const row = results[target.index];
-		// PH's GraphQL Media/thumbnail types expose no width/height, so stacking
-		// both as separate attachments renders as cramped, unsized thumbnails.
-		// Use one hero image: prefer the gallery/media shot over the thumbnail.
-		const gallery = httpsUrl(post.galleryUrl);
-		const thumb = httpsUrl(post.thumbnailUrl);
-		const hero = gallery != null ? gallery : thumb;
-		const attachments = [];
-		if (hero != null) {
-			attachments.push(MediaAttachment.createWithUrl(hero));
+		// Prefer the actual product screenshots (post.media) over the mismatched
+		// thumbnail crop — mixing a small logo thumb with real screenshots is
+		// what produced the cramped strip. Same-source screenshots stack cleanly.
+		const shots = post.galleryUrls.length > 0 ? post.galleryUrls : [httpsUrl(post.thumbnailUrl)].filter((u) => u != null);
+		const attachments = shots.map((url) => MediaAttachment.createWithUrl(url));
+		if (attachments.length > 0) {
 			row.item.attachments = attachments;
 		}
 
@@ -226,7 +223,7 @@ async function fetchPostsByIds(postIds, token) {
 		const id = normalizePostId(node.id) || postIds[i];
 		byId[id] = {
 			thumbnailUrl: node.thumbnail != null ? node.thumbnail.url : null,
-			galleryUrl: firstGalleryUrl(node.media),
+			galleryUrls: galleryUrlsFromMedia(node.media),
 			votesCount: node.votesCount,
 			dailyRank: node.dailyRank
 		};
@@ -263,12 +260,18 @@ function parseFullResponse(response) {
 	return null;
 }
 
-function firstGalleryUrl(media) {
+const MAX_GALLERY_IMAGES = 3;
+
+function galleryUrlsFromMedia(media) {
 	if (media == null) {
-		return null;
+		return [];
 	}
 	const list = media instanceof Array ? media : [media];
+	const urls = [];
 	for (const item of list) {
+		if (urls.length >= MAX_GALLERY_IMAGES) {
+			break;
+		}
 		if (item == null || item.url == null) {
 			continue;
 		}
@@ -278,10 +281,10 @@ function firstGalleryUrl(media) {
 		}
 		const url = httpsUrl(item.url);
 		if (url != null) {
-			return url;
+			urls.push(url);
 		}
 	}
-	return null;
+	return urls;
 }
 
 function httpsUrl(value) {
