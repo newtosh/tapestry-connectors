@@ -177,22 +177,19 @@ async function load() {
 			continue;
 		}
 
-		let body = buildEntryBody(entry);
-		if (showTopicsEnabled() && entry.topics != null && entry.topics.length > 0) {
-			const topicsLine = "<p><em>Topics: " + escapeHtml(entry.topics.join(", ")) + "</em></p>";
-			body = body != null && body.length > 0 ? (body + "\n" + topicsLine) : topicsLine;
-		}
+		const body = buildEntryBody(entry);
 		const resultItem = Item.createWithUriDate(url, date);
 		if (title != null && title.length > 0) {
 			resultItem.title = title;
 		}
-		if (body != null && body.length > 0) {
-			resultItem.body = body;
-		}
 		resultItem.author = createFeedIdentity();
 
+		const topicsLine = (showTopicsEnabled() && entry.topics != null && entry.topics.length > 0)
+			? "<p><em>Topics: " + escapeHtml(entry.topics.join(", ")) + "</em></p>"
+			: null;
+
 		const postId = entry.postId;
-		results.push({item: resultItem, postId: postId, body: body});
+		results.push({item: resultItem, postId: postId, body: body, topicsLine: topicsLine, metaLine: null});
 		if (postId != null) {
 			enrichTargets.push({index: results.length - 1, postId: postId});
 		}
@@ -209,6 +206,19 @@ async function load() {
 
 	const items = [];
 	for (const row of results) {
+		const pieces = [];
+		if (row.metaLine != null) {
+			pieces.push(row.metaLine);
+		}
+		if (row.topicsLine != null) {
+			pieces.push(row.topicsLine);
+		}
+		if (row.body != null && row.body.length > 0) {
+			pieces.push(row.body);
+		}
+		if (pieces.length > 0) {
+			row.item.body = pieces.join("\n");
+		}
 		items.push(row.item);
 	}
 	processResults(items);
@@ -238,11 +248,7 @@ async function enrichResults(results, enrichTargets, token) {
 			row.item.attachments = attachments;
 		}
 
-		const meta = formatStretchMeta(post.votesCount, post.dailyRank);
-		if (meta != null) {
-			const existing = row.item.body != null ? String(row.item.body) : (row.body || "");
-			row.item.body = existing.length > 0 ? (meta + "\n" + existing) : meta;
-		}
+		row.metaLine = formatStretchMeta(post.votesCount, post.dailyRank);
 	}
 }
 
