@@ -83,10 +83,22 @@ jobs:
         if: steps.tag.outputs.skip != 'true'
         run: ls -lh Downloads/*.tapestry
 
-      - name: Generate release notes
+      - name: Generate release notes from CHANGELOG.md
         if: steps.tag.outputs.skip != 'true'
         run: |
           set -euo pipefail
+          TAG="${{ steps.tag.outputs.tag }}"
+
+          if ! CHANGELOG_BODY="$(python3 scripts/extract-changelog-entry.py "$TAG")"; then
+            echo "Warning: no matching CHANGELOG.md section for $TAG; using fallback notes." >&2
+            CHANGELOG_BODY="$(printf '%s\n' \
+              '### Changed' \
+              '' \
+              '- See commits since the previous release.' \
+              '' \
+              '_Add a `## [X.Y.Z]` or `## [Unreleased]` section in CHANGELOG.md for curated notes._')"
+          fi
+
           CONNECTORS="$(python3 - <<'PY'
           from pathlib import Path
           text = Path("Makefile").read_text()
@@ -100,6 +112,8 @@ jobs:
           )"
 
           {
+            echo "$CHANGELOG_BODY"
+            echo ""
             echo "## Connectors"
             echo ""
             for id in $CONNECTORS; do
@@ -131,4 +145,3 @@ jobs:
             Downloads/com.*-v*.tapestry
           draft: false
           prerelease: false
-          generate_release_notes: true
