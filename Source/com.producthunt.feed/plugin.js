@@ -116,9 +116,18 @@ async function load() {
 	const token = developerTokenValue();
 	if (token.length > 0 && enrichTargets.length > 0) {
 		try {
-			await enrichResults(results, enrichTargets, token);
+			const debugNote = await enrichResults(results, enrichTargets, token);
+			if (debugNote != null && results.length > 0) {
+				const first = results[0].item;
+				const existing = first.body != null ? String(first.body) : "";
+				first.body = "<p>[PH DEBUG] " + escapeHtml(debugNote) + "</p>\n" + existing;
+			}
 		} catch (e) {
-			// Feed-first: enrichment must never blank the timeline.
+			if (results.length > 0) {
+				const first = results[0].item;
+				const existing = first.body != null ? String(first.body) : "";
+				first.body = "<p>[PH DEBUG] threw: " + escapeHtml(String(e && e.message ? e.message : e)) + "</p>\n" + existing;
+			}
 		}
 	}
 
@@ -131,11 +140,13 @@ async function load() {
 
 async function enrichResults(results, enrichTargets, token) {
 	const capped = enrichTargets.slice(0, MAX_ENRICH_IDS);
-	const enrichment = await fetchPostsByIds(capped.map((t) => t.postId), token);
+	const fetchResult = await fetchPostsByIds(capped.map((t) => t.postId), token);
+	const enrichment = fetchResult.byId;
 	if (enrichment == null) {
-		return;
+		return "capped=" + capped.length + " " + fetchResult.debug;
 	}
 
+	let attached = 0;
 	for (let i = 0; i < capped.length; i++) {
 		const target = capped[i];
 		const post = enrichment[target.postId];
@@ -162,12 +173,16 @@ async function enrichResults(results, enrichTargets, token) {
 			const existing = row.item.body != null ? String(row.item.body) : (row.body || "");
 			row.item.body = existing.length > 0 ? (meta + "\n" + existing) : meta;
 		}
+		if (attachments.length > 0) {
+			attached++;
+		}
 	}
+	return "capped=" + capped.length + " attached=" + attached + " " + fetchResult.debug;
 }
 
 async function fetchPostsByIds(postIds, token) {
 	if (postIds.length === 0) {
-		return {};
+		return {byId: {}, debug: "no postIds"};
 	}
 
 	const aliases = [];
@@ -193,29 +208,29 @@ async function fetchPostsByIds(postIds, token) {
 	try {
 		response = await sendRequest(PRODUCTHUNT_GRAPHQL, "POST", body, headers, true);
 	} catch (e) {
-		return null;
+		return {byId: null, debug: "sendRequest threw: " + String(e && e.message ? e.message : e)};
 	}
 
 	const parsed = parseFullResponse(response);
 	if (parsed == null) {
-		return null;
+		return {byId: null, debug: "parseFullResponse null; raw=" + String(response).slice(0, 200)};
 	}
 	if (parsed.status === 429) {
-		return null;
+		return {byId: null, debug: "status=429"};
 	}
 	if (parsed.status != null && parsed.status >= 400) {
-		return null;
+		return {byId: null, debug: "status=" + parsed.status + " body=" + parsed.body.slice(0, 200)};
 	}
 
 	let json;
 	try {
 		json = JSON.parse(parsed.body);
 	} catch (e) {
-		return null;
+		return {byId: null, debug: "JSON.parse failed; body=" + parsed.body.slice(0, 200)};
 	}
 
 	if (json == null || json.data == null) {
-		return null;
+		return {byId: null, debug: "no data; body=" + parsed.body.slice(0, 200)};
 	}
 
 	const byId = {};
@@ -232,7 +247,7 @@ async function fetchPostsByIds(postIds, token) {
 			dailyRank: node.dailyRank
 		};
 	}
-	return byId;
+	return {byId: byId, debug: "status=" + parsed.status + " nodes=" + Object.keys(byId).length};
 }
 
 function parseFullResponse(response) {
