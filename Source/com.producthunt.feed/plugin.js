@@ -114,21 +114,17 @@ async function load() {
 	}
 
 	const token = developerTokenValue();
+	let debugNote = "token.length=" + token.length + " enrichTargets=" + enrichTargets.length + " (skipped)";
 	if (token.length > 0 && enrichTargets.length > 0) {
 		try {
-			const debugNote = await enrichResults(results, enrichTargets, token);
-			if (debugNote != null && results.length > 0) {
-				const first = results[0].item;
-				const existing = first.body != null ? String(first.body) : "";
-				first.body = "<p>[PH DEBUG] " + escapeHtml(debugNote) + "</p>\n" + existing;
-			}
+			debugNote = await enrichResults(results, enrichTargets, token);
 		} catch (e) {
-			if (results.length > 0) {
-				const first = results[0].item;
-				const existing = first.body != null ? String(first.body) : "";
-				first.body = "<p>[PH DEBUG] threw: " + escapeHtml(String(e && e.message ? e.message : e)) + "</p>\n" + existing;
-			}
+			debugNote = "threw: " + String(e && e.message ? e.message : e);
 		}
+	}
+	for (const row of results) {
+		const existing = row.item.body != null ? String(row.item.body) : "";
+		row.item.body = "<p>[PH DEBUG] " + escapeHtml(debugNote) + "</p>\n" + existing;
 	}
 
 	const items = [];
