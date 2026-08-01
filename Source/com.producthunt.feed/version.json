@@ -1,0 +1,8 @@
+{
+  "semver": "0.1.0",
+  "tapestry_version": 1,
+  "icon_url": "https://raw.githubusercontent.com/newtosh/tapestry-connectors/refs/heads/main/Source/com.producthunt.feed/icon.png",
+  "icon_text": "PH",
+  "icon_text_scale": 0.48,
+  "icon_bg_rgb": "218,85,47"
+}
