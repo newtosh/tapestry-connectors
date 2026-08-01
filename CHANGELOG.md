@@ -4,6 +4,12 @@ All notable changes to connectors in this repo are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [com.reactor.feed 0.1.1] - 2026-08-01
+
+### Fixed
+
+- Embed the branded icon as a data URI so Loom/iOS can show it before the PNG is available on `main` (the GitHub raw URL was 404ing).
+
 ## [com.reactor.feed 0.1.0] - 2026-08-01
 
 ### Added
