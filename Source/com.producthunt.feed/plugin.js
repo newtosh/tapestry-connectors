@@ -7,7 +7,14 @@ const PRODUCTHUNT_ICON = loadIconUrl();
 const PRODUCTHUNT_BASE_URL = "https://www.producthunt.com";
 const PRODUCTHUNT_GRAPHQL = "https://api.producthunt.com/v2/api/graphql";
 // Conservative cap: lean post(id) media lookups share the app's 6250/15min complexity budget.
+// This stays a GLOBAL cap across all merged topics, not per-topic — adding topics must never
+// scale GraphQL cost.
 const MAX_ENRICH_IDS = 12;
+// PH's feed endpoint has no native multi-topic param (space/comma-joined slugs silently fall
+// back to an unfiltered default feed instead of erroring) — so multi-topic is fetched as N
+// separate Atom requests and merged client-side. Cap topic count to bound that fan-out.
+const MAX_TOPICS = 5;
+const MAX_MERGED_ENTRIES = 50;
 
 const userAgent = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_3; de-de) AppleWebKit/531.22.7 (KHTML, like Gecko) NetNewsWire/3.2.7 Tapestry/1.3";
 
@@ -26,18 +33,37 @@ function createFeedIdentity() {
 	return identity;
 }
 
-function topicSlug() {
+function topicSlugs() {
+	let raw = "";
 	if (typeof topic !== "undefined" && topic != null) {
-		const slug = String(topic).trim();
-		if (slug.length > 0) {
-			return slug;
+		raw = String(topic).trim();
+	}
+	if (raw.length === 0) {
+		return ["tech"];
+	}
+
+	const seen = {};
+	const slugs = [];
+	for (const piece of raw.split(/[,\s]+/)) {
+		const slug = piece.trim();
+		if (slug.length === 0) {
+			continue;
+		}
+		const key = slug.toLowerCase();
+		if (seen[key]) {
+			continue;
+		}
+		seen[key] = true;
+		slugs.push(slug);
+		if (slugs.length >= MAX_TOPICS) {
+			break;
 		}
 	}
-	return "tech";
+	return slugs.length > 0 ? slugs : ["tech"];
 }
 
-function feedUrlForTopic() {
-	return PRODUCTHUNT_BASE_URL + "/feed?category=" + encodeURIComponent(topicSlug());
+function feedUrlForTopicSlug(slug) {
+	return PRODUCTHUNT_BASE_URL + "/feed?category=" + encodeURIComponent(slug);
 }
 
 function developerTokenValue() {
@@ -56,16 +82,17 @@ async function verify() {
 	});
 }
 
-async function load() {
-	const feedUrl = feedUrlForTopic();
-	let response = await sendConditionalRequest(feedUrl, "GET", null, {"user-agent": userAgent});
+async function fetchTopicEntries(slug, useConditional) {
+	const feedUrl = feedUrlForTopicSlug(slug);
+	let response = null;
+	if (useConditional) {
+		response = await sendConditionalRequest(feedUrl, "GET", null, {"user-agent": userAgent});
+	}
 	if (response == null || response.length === 0) {
 		response = await sendRequest(feedUrl, "GET", null, {"user-agent": userAgent});
 	}
-
 	if (response == null || response.length === 0) {
-		processResults([]);
-		return;
+		return [];
 	}
 
 	const xmlText = String(response);
@@ -79,6 +106,45 @@ async function load() {
 		}
 	} catch (e) {
 		// Raw Atom parse is enough.
+	}
+
+	return entries;
+}
+
+function mergeEntries(entryLists) {
+	const seen = {};
+	const merged = [];
+	for (const list of entryLists) {
+		for (const entry of list) {
+			const key = entry.postId != null ? "id:" + entry.postId : "url:" + entry.link;
+			if (key == null || seen[key]) {
+				continue;
+			}
+			seen[key] = true;
+			merged.push(entry);
+		}
+	}
+	merged.sort((a, b) => {
+		const aTime = a.published != null ? new Date(a.published).getTime() : 0;
+		const bTime = b.published != null ? new Date(b.published).getTime() : 0;
+		return (isNaN(bTime) ? 0 : bTime) - (isNaN(aTime) ? 0 : aTime);
+	});
+	return merged.slice(0, MAX_MERGED_ENTRIES);
+}
+
+async function load() {
+	const slugs = topicSlugs();
+	const useConditional = slugs.length === 1;
+
+	const entryLists = [];
+	for (const slug of slugs) {
+		entryLists.push(await fetchTopicEntries(slug, useConditional));
+	}
+	const entries = mergeEntries(entryLists);
+
+	if (entries.length === 0) {
+		processResults([]);
+		return;
 	}
 
 	const results = [];

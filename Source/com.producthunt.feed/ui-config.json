@@ -3,9 +3,9 @@
 		{
 			"name": "topic",
 			"type": "text",
-			"prompt": "Topic slug",
+			"prompt": "Topic slug(s)",
 			"value": "tech",
-			"placeholder": "Product Hunt topic slug (default: tech)"
+			"placeholder": "One or more topic slugs, comma/space separated, e.g. \"apple, developer-tools\" (default: tech, max 5)"
 		},
 		{
 			"name": "developerToken",

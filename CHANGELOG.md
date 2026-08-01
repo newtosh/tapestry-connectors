@@ -25,6 +25,7 @@ Older entries below use per-connector headings and remain as history.
 ### Added
 
 - New **Product Hunt** connector (`com.producthunt.feed`) for topic Atom feeds (default `tech`): branded **PH** icon, launch cards with tagline/maker/links, and optional Developer Token enrichment for thumbnail + first gallery image via GraphQL (no product HTML scraping; feed-only fallback on 429/errors).
+- **Product Hunt** connector: `topic` setting now accepts multiple comma/space-separated slugs (up to 5), fetched as separate Atom feeds and merged/deduped/sorted by date; GraphQL enrichment stays capped globally so adding topics doesn't raise API quota use.
 
 ## [0.3.6] - 2026-08-01
 

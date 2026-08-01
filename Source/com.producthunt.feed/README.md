@@ -4,7 +4,7 @@ Topic Atom feed for [Product Hunt](https://www.producthunt.com) with a branded i
 
 ## Settings
 
-- **Topic slug** — defaults to `tech`. Loads `https://www.producthunt.com/feed?category=<slug>`.
+- **Topic slug(s)** — defaults to `tech`. Accepts multiple slugs separated by commas or spaces (e.g. `apple, developer-tools`), up to 5. Each topic is fetched as its own Atom feed (`https://www.producthunt.com/feed?category=<slug>`) — Product Hunt's feed endpoint has no native multi-topic filter — and merged/deduped/sorted by date. Enrichment is capped globally (not per topic), so adding topics doesn't increase GraphQL cost.
 - **Developer Token** — optional. Paste a Personal Developer Token from a Product Hunt API application. Without a token, launch cards still load from the Atom feed (text + links only).
 
 ### Getting a Developer Token
